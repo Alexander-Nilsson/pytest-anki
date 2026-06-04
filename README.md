@@ -19,83 +19,247 @@ def test_addon_registers_deck(anki_session: AnkiSession):
 
 The goal is to provide add-on authors with a one-stop-shop for their functional testing needs, while also enabling them to QA their add-ons against a battery of different Anki versions, catching incompatibilities as they arise.
 
-![PyPI](https://img.shields.io/pypi/v/pytest-anki) <a title="License: GNU AGPLv3" href="https://github.com/glutanimate/anki-addon-builder/blob/master/LICENSE"><img  src="https://img.shields.io/badge/license-GNU AGPLv3-f37f40.svg"></a>  <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>  [![tests](https://github.com/glutanimate/pytest-anki/actions/workflows/general.yml/badge.svg)](https://github.com/glutanimate/pytest-anki/actions/workflows/general.yml) 
+![PyPI](https://img.shields.io/pypi/v/pytest-anki) <a title="License: GNU AGPLv3" href="https://github.com/glutanimate/anki-addon-builder/blob/master/LICENSE"><img  src="https://img.shields.io/badge/license-GNU AGPLv3-f37f40.svg"></a>  <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>  [![CI](https://github.com/glutanimate/pytest-anki/actions/workflows/general.yml/badge.svg)](https://github.com/glutanimate/pytest-anki/actions/workflows/general.yml) 
 
 ## Disclaimer
 
 ### Project State
 
-**Important**: The plugin is currently undergoing a major rewrite and expansion of its feature-set, so the documentation below is very sparse at the moment. I am working on bringing the docs up to speed, but until then, please feel free to check out the inline documentation and also take a look at the plug-in's tests for a number of hopefully helpful examples.
+**v2.0.0b2**: This is a pre-release of the v2 rewrite. The API is stable but may see minor changes before the final release. Check the [CHANGELOG](./CHANGELOG.md) for what's new.
 
 ### Platform Support
 
-`pytest-anki` has only been confirmed to work on Linux so far.
+`pytest-anki` has only been confirmed to work on Linux so far. The full test suite requires a Qt6 WebEngine ABI compatible with Ubuntu 24.04 (as used in CI). On other distributions, use system Qt packages and rely on CI for test validation.
 
 
 ## Installation
 
 ### Requirements
 
-`pytest-anki` requires Python 3.8+.
+- Python 3.9+ (3.13 supported)
+- Anki 2.1.54+ (installed automatically)
+- Qt5 or Qt6 (auto-detected at runtime; see below)
 
-### Installing the latest packaged build
+### Choose your Qt backend
+
+`pytest-anki` supports both **PyQt5** and **PyQt6**, auto-detected at import time. Choose the approach that matches your system.
+
+---
+
+#### Option A: Ubuntu / Debian (PyPI wheels, recommended)
+
+PyPI wheels for `PyQt6`, `PyQt6-WebEngine`, and their bundled Qt6 runtimes are built against Ubuntu's ABI and work out of the box:
 
 ```bash
-$ pip install pytest-anki
+pip install pytest-anki[qt6-pypi]
 ```
 
-or
+With uv:
 
 ```bash
-$ poetry add --dev pytest-anki
+uv add --dev pytest-anki[qt6-pypi]
 ```
+
+Install optional selenium support for web debugging:
+
+```bash
+pip install pytest-anki[qt6-pypi,selenium]
+```
+
+---
+
+#### Option B: Arch Linux (system packages)
+
+Use your distro's pre-compiled PyQt6 packages — they link against your system's Qt6 libraries and avoid ABI incompatibilities:
+
+```bash
+sudo pacman -S python-pyqt6-webengine
+pip install pytest-anki[qt6-system]
+```
+
+With uv:
+
+```bash
+sudo pacman -S python-pyqt6-webengine
+uv add --dev pytest-anki[qt6-system]
+```
+
+---
+
+#### Option C: Fedora (system packages)
+
+```bash
+sudo dnf install python3-pyqt6-webengine
+pip install pytest-anki[qt6-system]
+```
+
+With uv:
+
+```bash
+sudo dnf install python3-pyqt6-webengine
+uv add --dev pytest-anki[qt6-system]
+```
+
+---
+
+#### Option D: Any Linux with system Qt5 (fallback)
+
+If your system provides Qt5 + PyQt5:
+
+```bash
+pip install pytest-anki[qt5]
+```
+
+---
+
+### What's the difference between `qt6-system` and `qt6-pypi`?
+
+| Extra | Installs | Best for |
+|---|---|---|
+| `qt6-system` | `PyQt6` + `PyQt6-WebEngine` (bindings only) | Systems with Qt6 + WebEngine installed via native packages |
+| `qt6-pypi` | `PyQt6` + `PyQt6-WebEngine` + `PyQt6-Qt6` + `PyQt6-WebEngine-Qt6` (bundled runtimes) | Ubuntu / Debian where PyPI wheels work natively |
+
+### Optional extras
+
+| Extra | What it gives you |
+|---|---|
+| `selenium` / `web` | Web debugging via ChromeDriver |
+| `recommended-plugins` | `pytest-xvfb`, `pytest-xdist` (with native forking) |
 
 
 ## Usage
 
 ### Basic Use
 
-In your tests add:
-   
-```python
-from pytest_anki import AnkiSession  # for type checking and completions
-
-@pytest.mark.forked
-def test_my_addon(anki_session: AnkiSession):
-    # add some tests in here
-```
-
-The `anki_session` fixture yields an `AnkiSession` object that gives you access to the following attributes, among others:
-
-```
-app {AnkiApp} -- Anki QApplication instance
-mw {AnkiQt} -- Anki QMainWindow instance
-user {str} -- User profile name (e.g. "User 1")
-base {str} -- Path to Anki base directory
-```
-
-Additionally, the fixture provides a number of helpful methods and context managers, e.g. for initializing an Anki profile:
+The plugin registers a single `anki_session` fixture that launches a headless Anki instance:
 
 ```python
-@pytest.mark.forked
+from pytest_anki import AnkiSession
+
 def test_my_addon(anki_session: AnkiSession):
+    # Anki is running — interact with anki_session.mw, .app, etc.
+    pass
+```
+
+The `anki_session` fixture yields an `AnkiSession` with these key attributes:
+
+| Attribute | Type | Description |
+|---|---|---|
+| `mw` | `AnkiQt` | Anki's main window |
+| `app` | `AnkiApp` | QApplication instance |
+| `collection` | `Collection` | Anki collection (after profile is loaded) |
+| `user` | `str` | Profile name (default: `"User 1"`) |
+| `base` | `str` | Path to Anki's base directory |
+| `qtbot` | `QtBot` | pytest-qt fixture for Qt signal testing |
+
+**Profiles & collection:**
+
+```python
+def test_profile_loading(anki_session: AnkiSession):
     with anki_session.profile_loaded():
         assert anki_session.collection
+        # mw.col.conf, mw.pm.profile, etc. are available
 ```
 
+**Deck management:**
+
+```python
+def test_deck_install(anki_session: AnkiSession):
+    with anki_session.profile_loaded():
+        with anki_session.deck_installed("path/to/deck.apkg") as deck_id:
+            assert deck_id in [d.id for d in anki_session.collection.decks.all_names_and_ids()]
+```
+
+**Loading add-ons:**
+
+```python
+def test_load_addon(anki_session: AnkiSession):
+    anki_session.load_addon("my_addon_package")
+    assert hasattr(anki_session.mw, "my_addon_package")
+```
+
+**Add-on config:**
+
+```python
+def test_addon_config(anki_session: AnkiSession):
+    with anki_session.addon_config_created(
+        package_name="my_addon",
+        default_config={"key": "default"},
+        user_config={"key": "overridden"},
+    ) as paths:
+        pass  # config written to addons21/my_addon/config.json and meta.json
+```
+
+**Pre-setting Anki state:**
+
+```python
+from pytest_anki import AnkiStateUpdate
+
+def test_preset_state(anki_session: AnkiSession):
+    anki_session.update_anki_state(AnkiStateUpdate(
+        colconf_storage={"my_key": True},
+        profile_storage={"my_key": True},
+    ))
+```
+
+**Running tasks in the Qt event loop:**
+
+```python
+def test_threaded_task(anki_session: AnkiSession):
+    result = anki_session.run_in_thread_and_wait(
+        lambda: 42, timeout=5000
+    )
+    assert result == 42
+```
 
 ### Configuring the Anki Session
 
-You can customize the Anki session context by passing arguments to the `anki_session` fixture using pytest's indirect parametrization, e.g.
+Customize the session via indirect parametrization:
 
 ```python
 import pytest
 
-@pytest.mark.forked
-@pytest.mark.parametrize("anki_session", [dict(load_profile=True)], indirect=True)
-def test_my_addon(anki_session: AnkiSession):
-    # profile / collection already pre-loaded!
-    assert anki_session.collection
+@pytest.mark.parametrize("anki_session", [dict(
+    load_profile=True,
+    profile_name="CustomUser",
+    lang="de_DE",
+    packed_addons=["path/to/addon.ankiaddon"],
+    unpacked_addons=[("my_addon", "path/to/addon/source")],
+    addon_configs=[("my_addon", {"key": "value"})],
+    preset_anki_state=AnkiStateUpdate(meta_storage={"key": True}),
+    enable_web_debugging=False,
+    skip_loading_addons=False,
+)], indirect=True)
+def test_configured_session(anki_session: AnkiSession):
+    assert anki_session.mw.pm.name == "CustomUser"
+```
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `base_path` | `str` | system tempdir | Directory for Anki base folder |
+| `profile_name` | `str` | `"User 1"` | User profile name |
+| `lang` | `str` | `"en_US"` | Profile language |
+| `load_profile` | `bool` | `False` | Pre-load profile/collection |
+| `preset_anki_state` | `AnkiStateUpdate` | `None` | Pre-configure col/prof/meta storage |
+| `packed_addons` | `List[Path]` | `None` | `.ankiaddon` packages to install |
+| `unpacked_addons` | `List[Tuple[str, Path]]` | `None` | Source folders to install as add-ons |
+| `addon_configs` | `List[Tuple[str, dict]]` | `None` | Config key/value pairs for add-ons |
+| `enable_web_debugging` | `bool` | `False` | Enable remote devtools |
+| `skip_loading_addons` | `bool` | `False` | Install but don't auto-load add-ons |
+
+### Web debugging
+
+When `enable_web_debugging=True`, you can drive Anki's web views via Selenium:
+
+```python
+from pytest_anki import AnkiWebViewType
+
+def test_web_view(anki_session: AnkiSession):
+    with anki_session.profile_loaded():
+        anki_session.run_with_chrome_driver(
+            lambda driver: driver.find_element("tag name", "body"),
+            target_web_view=AnkiWebViewType.main_webview,
+        )
 ```
 
 ## Additional Notes
@@ -108,19 +272,24 @@ Where `anki_session` comes in handy is further towards the upper levels of the t
 
 ### The importance of forking your tests
 
-You might have noticed that most of the examples above use a `@pytest.mark.forked` decorator. This is because, while the plugin does attempt to tear down Anki sessions as cleanly as possible on exit, this process is never quite perfect, especially for add-ons that monkey-patch Anki.
+Since v2.0.0, all tests using this plugin are automatically marked as `forked` (via `pytest_collection_modifyitems`). This is because, while the plugin does attempt to tear down Anki sessions as cleanly as possible on exit, this process is never quite perfect, especially for add-ons that monkey-patch Anki.
 
-With unforked test runs, factors like that can lead to unexpected behavior, or worse still, your tests crashing. Forking a new subprocess for each test bypasses these limitations, and therefore my advice would be to mark any `anki_session` tests as forked by default.
+With unforked test runs, factors like that can lead to unexpected behavior, or worse still, your tests crashing. Forking a new subprocess for each test bypasses these limitations.
 
-To do this in batch for an entire test module, you can use the following pytest hook:
+To opt out of automatic forking, set `anki_force_fork = false` in your `pyproject.toml`:
 
-```python
-def pytest_collection_modifyitems(items):
-    for item in items:
-        item.add_marker("forked")
+```toml
+[tool.pytest.ini_options]
+anki_force_fork = false
 ```
 
-Future versions of `pytest-anki` will possibly do this by default.
+Or pass `--anki-no-fork` on the command line:
+
+```bash
+pytest --anki-no-fork tests/
+```
+
+Disabling forking can speed up test suites that share a single Anki process, but may cause instability if add-ons mutate global state.
 
 ### Automated Testing
 
@@ -129,21 +298,36 @@ Future versions of `pytest-anki` will possibly do this by default.
 
 ### Troubleshooting
 
+#### Local testing limitations (Qt6 ABI)
+
+`pytest-anki`'s full test suite requires launching a real Anki process with Qt/WebEngine. PyPI wheels for `PyQt6-WebEngine` ship Qt6 libraries compiled against Ubuntu's ABI, which cannot run on distros like Arch Linux or Fedora. On those systems, use system packages:
+
+```bash
+# Arch
+sudo pacman -S python-pyqt6-webengine
+# Fedora
+sudo dnf install python3-pyqt6-webengine
+```
+
+If you cannot run the full suite locally, CI (GitHub Actions) is the authoritative validation — it runs the full matrix on Ubuntu 24.04. You can also run lint and type checks locally without Qt:
+
+```bash
+make lint
+make check
+```
+
 #### pytest hanging when using xvfb
 
 Especially if you run your tests headlessly with `xvfb`, you might run into cases where pytest will sometimes appear to hang. Oftentimes this is due to blocking non-dismissable prompts that your add-on code might invoke in some scenarios. If you suspect that might be the case, my advice would be to temporarily bypass `xvfb` locally via `pytest --no-xvfb` to show the UI and manually debug the issue.
 
 ## Contributing
 
-Contributions are welcome! To set up `pytest-anki` for development, please first make sure you have Python 3.8+ and [poetry](https://python-poetry.org/docs/) installed, then run the following steps:
+Contributions are welcome! To set up `pytest-anki` for development, please first make sure you have Python 3.9+ and [uv](https://docs.astral.sh/uv/) installed, then run the following steps:
 
 ```
 $ git clone https://github.com/glutanimate/pytest-anki.git
 
 $ cd pytest-anki
-
-# Either set up a new Python virtual environment at this stage
-# (e.g. using pyenv), or let poetry create the venv for you
 
 $ make install
 ```
@@ -151,12 +335,12 @@ $ make install
 Before submitting any changes, please make sure that `pytest-anki`'s checks and tests pass:
 
 ```bash
-make check
 make lint
-make test
+make check
+make test      # requires Ubuntu-compatible Qt6 ABI; CI runs the full matrix
 ```
 
-This project uses `black`, `isort` and `autoflake` to enforce a consistent code style. To auto-format your code you can use:
+This project uses `ruff` to enforce a consistent code style. To auto-format your code you can use:
 
 ```bash
 make format
@@ -166,7 +350,7 @@ make format
 
 *pytest-anki* is
 
-*Copyright © 2019-2021 [Aristotelis P.](https://glutanimate.com/contact/) (Glutanimate) and [contributors](./CONTRIBUTORS)*
+*Copyright © 2019-2025 [Aristotelis P.](https://glutanimate.com/contact/) (Glutanimate) and [contributors](./CONTRIBUTORS)*
 
 *Copyright © 2017-2019 [Michal Krassowski](https://github.com/krassowski/anki_testing)*
 
