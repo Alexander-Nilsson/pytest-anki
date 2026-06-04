@@ -1,0 +1,65 @@
+"""Tests for plugin configuration: QT_API env var and forking options."""
+
+import pytest
+
+from pytest_anki._plugin.compat import _resolve_qt_api_from_env
+
+# -- QT_API env var -------------------------------------------------------
+
+
+def test_resolve_qt_api_pyqt5(monkeypatch):
+    monkeypatch.setenv("QT_API", "pyqt5")
+    assert _resolve_qt_api_from_env() == "PyQt5"
+
+
+def test_resolve_qt_api_qt5(monkeypatch):
+    monkeypatch.setenv("QT_API", "qt5")
+    assert _resolve_qt_api_from_env() == "PyQt5"
+
+
+def test_resolve_qt_api_pyqt6(monkeypatch):
+    monkeypatch.setenv("QT_API", "pyqt6")
+    assert _resolve_qt_api_from_env() == "PyQt6"
+
+
+def test_resolve_qt_api_qt6(monkeypatch):
+    monkeypatch.setenv("QT_API", "qt6")
+    assert _resolve_qt_api_from_env() == "PyQt6"
+
+
+def test_resolve_qt_api_unset(monkeypatch):
+    monkeypatch.delenv("QT_API", raising=False)
+    assert _resolve_qt_api_from_env() is None
+
+
+def test_resolve_qt_api_invalid(monkeypatch):
+    monkeypatch.setenv("QT_API", "invalid")
+    assert _resolve_qt_api_from_env() is None
+
+
+def test_resolve_qt_api_empty(monkeypatch):
+    monkeypatch.setenv("QT_API", "")
+    assert _resolve_qt_api_from_env() is None
+
+
+# -- Forking options ------------------------------------------------------
+
+
+def test_pytest_addoption_registers_anki_no_fork():
+    parser = pytest.Parser()
+    from pytest_anki.plugin import pytest_addoption
+
+    pytest_addoption(parser)
+    opt = parser.getoption("--anki-no-fork")
+    assert opt is not None
+    assert opt.default is False
+    assert opt.action == "store_true"
+
+
+def test_pytest_addoption_registers_anki_force_fork_ini():
+    parser = pytest.Parser()
+    from pytest_anki.plugin import pytest_addoption
+
+    pytest_addoption(parser)
+    names = [o.name for o in parser._ini]
+    assert "anki_force_fork" in names
