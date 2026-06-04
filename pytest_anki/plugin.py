@@ -1,6 +1,6 @@
 # pytest-anki
 #
-# Copyright (C)  2019-2021 Aristotelis P. <https://glutanimate.com/>
+# Copyright (C)  2019-2025 Aristotelis P. <https://glutanimate.com/>
 #                and contributors (see CONTRIBUTORS file)
 #
 # This program is free software: you can redistribute it and/or modify
@@ -33,29 +33,40 @@ from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 import pytest
 
 if TYPE_CHECKING:
-    from pytest import FixtureRequest
+    from pytest import Config, FixtureRequest, Item
     from pytestqt.qtbot import QtBot
-    from _pytest.config import Config  # FIXME: not stable
 
-from ._anki import get_anki_version
-from ._config import get_latest_tested_lib_versions
-from ._launch import anki_running
-from ._session import AnkiSession
+from ._plugin.launch import anki_running
+from ._plugin.session import AnkiSession
+
+
+def pytest_addoption(parser):
+    parser.addini(
+        "anki_force_fork",
+        type="bool",
+        default=True,
+        help="Fork each test into a subprocess (default: true). "
+        "Set to false to share a single Anki process across tests.",
+    )
+    parser.addoption(
+        "--anki-no-fork",
+        action="store_true",
+        default=False,
+        help="Disable per-test forking (equivalent to anki_force_fork=false)",
+    )
 
 
 def pytest_configure(config: "Config"):
-    """Hook into pytest_configure stage to prepare plugin, e.g.
-    in order to assert that runtime environment is supported"""
-    latest_tested_lib_versions = get_latest_tested_lib_versions()
-    anki_version = get_anki_version()
+    config.addinivalue_line("markers", "forked: run test in a forked subprocess")
 
-    if anki_version > (latest_tested_anki_version := latest_tested_lib_versions.anki):
-        warning = Warning(
-            "The latest Anki version pytest-anki was tested with is"
-            f" {latest_tested_anki_version}. You are using {anki_version}. pytest-anki"
-            " might not behave as expected or not work at all."
-        )
-        config.issue_config_time_warning(warning, stacklevel=2)
+
+def pytest_collection_modifyitems(config: "Config", items: list["Item"]):
+    no_fork_flag = config.getoption("--anki-no-fork", default=False)
+    ini_value = config.getini("anki_force_fork")
+    if no_fork_flag or not ini_value:
+        return
+    for item in items:
+        item.add_marker("forked")
 
 
 @pytest.fixture
@@ -116,9 +127,10 @@ def anki_session(request: "FixtureRequest", qtbot: "QtBot") -> Iterator[AnkiSess
             Each list member needs to be specified as a tuple of add-on package name
             and dictionary of user configuration values to set.
 
-        web_debugging_port {Optional[int]}:
-            If specified, launches Anki with QTWEBENGINE_REMOTE_DEBUGGING set, allowing
-            you to remotely debug Qt web engine views.
+        enable_web_debugging {bool}:
+            If set to True, will enable web debugging, allowing you to interact with
+            Anki's web view via a Selenium web driver. For more information, see
+            AnkiSession.run_with_chrome_driver(). (default: {False})
 
         skip_loading_addons {bool}:
             If set to True, will skip loading packed and unpacked add-ons, giving the
@@ -127,7 +139,9 @@ def anki_session(request: "FixtureRequest", qtbot: "QtBot") -> Iterator[AnkiSess
 
     indirect_parameters: Optional[Dict[str, Any]] = getattr(request, "param", None)
 
-    with anki_running(qtbot=qtbot) if not indirect_parameters else anki_running(
-        qtbot=qtbot, **indirect_parameters
+    with (
+        anki_running(qtbot=qtbot)
+        if not indirect_parameters
+        else anki_running(qtbot=qtbot, **indirect_parameters)
     ) as session:
         yield session

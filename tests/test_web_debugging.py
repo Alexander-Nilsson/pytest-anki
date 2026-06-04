@@ -1,6 +1,6 @@
 # pytest-anki
 #
-# Copyright (C)  2019-2021 Aristotelis P. <https://glutanimate.com/>
+# Copyright (C)  2019-2025 Aristotelis P. <https://glutanimate.com/>
 #                and contributors (see CONTRIBUTORS file)
 #
 # This program is free software: you can redistribute it and/or modify
@@ -34,9 +34,13 @@ from unittest.mock import Mock
 import pytest
 import requests
 from pytestqt.qtbot import TimeoutError
-from selenium import webdriver
 
-from pytest_anki import AnkiSession, AnkiWebViewType
+from pytest_anki import AnkiSession, AnkiSessionError, AnkiWebViewType
+
+selenium = pytest.importorskip("selenium")
+webdriver = selenium.webdriver
+
+_WEB_PARAMS = dict(enable_web_debugging=True)
 
 
 def test_run_in_thread(anki_session: AnkiSession):
@@ -74,6 +78,7 @@ def test_can_supply_timeout(anki_session: AnkiSession):
         )
 
 
+@pytest.mark.parametrize("anki_session", [_WEB_PARAMS], indirect=True)
 def test_web_debugging_available_on_launch(anki_session: AnkiSession):
     port = anki_session.web_debugging_port
 
@@ -85,15 +90,17 @@ def test_web_debugging_available_on_launch(anki_session: AnkiSession):
     anki_session.run_in_thread_and_wait(assert_web_debugging_interface_up)
 
 
+@pytest.mark.parametrize("anki_session", [_WEB_PARAMS], indirect=True)
 def test_web_driver_can_connect(anki_session: AnkiSession):
-    def assert_web_driver_connected(driver: webdriver.Chrome):
+    def assert_web_driver_connected(driver: webdriver.Chrome):  # type: ignore[name-defined]  # optional selenium dep
         assert driver.window_handles
 
     anki_session.run_with_chrome_driver(assert_web_driver_connected)
 
 
+@pytest.mark.parametrize("anki_session", [_WEB_PARAMS], indirect=True)
 def test_web_driver_can_select_web_view(anki_session: AnkiSession):
-    def assert_web_driver_connected_to_main_web_view(driver: webdriver.Chrome):
+    def assert_web_driver_connected_to_main_web_view(driver: webdriver.Chrome):  # type: ignore[name-defined]  # optional selenium dep
         assert driver.title == AnkiWebViewType.main_webview.value
 
     with anki_session.profile_loaded():
@@ -102,9 +109,10 @@ def test_web_driver_can_select_web_view(anki_session: AnkiSession):
         )
 
 
+@pytest.mark.parametrize("anki_session", [_WEB_PARAMS], indirect=True)
 def test_web_driver_can_interact_with_anki(anki_session: AnkiSession):
-    def switch_to_deck_view(driver: webdriver.Chrome):
-        driver.find_element_by_xpath("//*[text()='Default']").click()
+    def switch_to_deck_view(driver: webdriver.Chrome):  # type: ignore[name-defined]  # optional selenium dep
+        driver.find_element("xpath", "//*[text()='Default']").click()
 
     with anki_session.profile_loaded():
         assert anki_session.mw.state == "deckBrowser"
@@ -116,3 +124,24 @@ def test_web_driver_can_interact_with_anki(anki_session: AnkiSession):
             assert anki_session.mw.state == "overview"
 
         anki_session.qtbot.wait_until(mw_state_switched)
+
+
+@pytest.mark.env({"QTWEBENGINE_REMOTE_DEBUGGING": "12345"})
+@pytest.mark.parametrize(
+    "anki_session",
+    [
+        dict(
+            enable_web_debugging=False,
+        )
+    ],
+    indirect=True,
+)
+def test_web_debugging_can_be_disabled_even_when_port_set(anki_session: AnkiSession):
+    assert anki_session.web_debugging_port is None
+
+    with pytest.raises(AnkiSessionError) as exception_info:
+        anki_session.run_with_chrome_driver(
+            lambda driver: None, AnkiWebViewType.main_webview
+        )
+
+    assert str(exception_info.value) == "Web debugging interface is not active"

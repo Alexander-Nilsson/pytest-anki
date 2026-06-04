@@ -1,6 +1,6 @@
 # pytest-anki
 #
-# Copyright (C)  2019-2021 Aristotelis P. <https://glutanimate.com/>
+# Copyright (C)  2019-2025 Aristotelis P. <https://glutanimate.com/>
 #                and contributors (see CONTRIBUTORS file)
 #
 # This program is free software: you can redistribute it and/or modify
@@ -36,6 +36,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     Iterator,
     List,
     Optional,
@@ -43,22 +44,24 @@ from typing import (
     Union,
 )
 
-from anki.importing.apkg import AnkiPackageImporter
-from PyQt5.QtCore import QThreadPool, QTimer
-from PyQt5.QtWebEngineWidgets import QWebEngineProfile
-from selenium import webdriver
-
-from ._addons import ConfigPaths, create_addon_config
-from ._anki import AnkiStateUpdate, AnkiWebViewType, get_collection, update_anki_state
-from ._errors import AnkiSessionError
-from ._qt import SignallingWorker
-from ._types import PathLike
+from .addons import ConfigPaths, create_addon_config
+from .anki import (
+    AnkiStateUpdate,
+    AnkiWebViewType,
+    get_collection,
+    update_anki_state,
+)
+from .compat import QThreadPool, QTimer, QWebEngineProfile
+from .errors import AnkiSessionError
+from .qt import SignallingWorker
+from .types import PathLike
 
 if TYPE_CHECKING:
     from anki.collection import Collection
     from aqt import AnkiApp
     from aqt.main import AnkiQt
     from pytestqt.qtbot import QtBot
+    from selenium.webdriver.chrome.webdriver import WebDriver as ChromeDriver
 
 
 class AnkiSession:
@@ -89,7 +92,7 @@ class AnkiSession:
         self._base = base
         self._qtbot = qtbot
         self._web_debugging_port = web_debugging_port
-        self._chrome_driver: Optional[webdriver.Chrome] = None
+        self._chrome_driver: Optional["ChromeDriver"] = None
 
     # Key session properties ####
 
@@ -129,7 +132,8 @@ class AnkiSession:
 
     @property
     def chromium_version(self) -> str:
-        user_agent = QWebEngineProfile.defaultProfile().httpUserAgent()
+        # Qt5/Qt6 stubs differ on the return type of defaultProfile()
+        user_agent = QWebEngineProfile.defaultProfile().httpUserAgent()  # type: ignore[union-attr]
         match = re.match(r".*Chrome/(.+)\s+.*", user_agent)
         if match is None:
             raise AnkiSessionError("Could not determine Chromium version")
@@ -156,6 +160,11 @@ class AnkiSession:
     def unload_profile(self, on_profile_unloaded: Optional[Callable] = None):
         """Unload current profile, optionally running a callback when profile
         unload complete"""
+
+        # Run closures before unloading collection to avoid errors due to closures
+        # trying to access the collection after it has been unloaded.
+        self._mw.taskman._on_closures_pending()
+
         if on_profile_unloaded is None:
             on_profile_unloaded = lambda *args, **kwargs: None  # noqa: E731
         self._mw.unloadProfile(on_profile_unloaded)
@@ -174,6 +183,9 @@ class AnkiSession:
 
     def install_deck(self, path: PathLike) -> int:
         """Install deck from specified .apkg file, returning deck ID"""
+        from anki.decks import DeckId
+        from anki.importing.apkg import AnkiPackageImporter
+
         old_ids = set(self._get_deck_ids())
 
         importer = AnkiPackageImporter(col=self.collection, file=str(path))
@@ -181,20 +193,28 @@ class AnkiSession:
 
         new_ids = set(self._get_deck_ids())
 
+        def highest_level_did(dids: Iterable[int]) -> int:
+            return min(
+                dids,
+                key=lambda did: self.collection.decks.name(DeckId(did)).count("::"),
+            )
+
         # deck IDs are strings on <=2.1.26
-        deck_id = int(next(iter(new_ids - old_ids)))
+        deck_id = int(highest_level_did(new_ids - old_ids))
 
         return deck_id
 
     def remove_deck(self, deck_id: int):
         """Remove deck as specified by provided deck ID"""
+        from anki.decks import DeckId
+
         try:  # 2.1.28+
             # Deck methods on 2.1.45 and up use a DeckId NewType derived from int.
             # This only makes a difference at type-check time, so we stick with
             # passing in an int for now.
             self.collection.decks.remove([deck_id])  # type: ignore[list-item]
         except AttributeError:  # legacy
-            self.collection.decks.rem(deck_id, cardsToo=True)
+            self.collection.decks.rem(DeckId(deck_id), cardsToo=True)
 
     @contextmanager
     def deck_installed(self, path: PathLike) -> Iterator[int]:
@@ -326,8 +346,20 @@ class AnkiSession:
         self.mw.app.setApplicationName(old_application_name)
         self.mw.app.setApplicationVersion(old_application_version)
 
+    @staticmethod
+    def _get_selenium_webdriver():
+        try:
+            from selenium import webdriver as _webdriver
+
+            return _webdriver
+        except ImportError:
+            raise AnkiSessionError(
+                "Selenium is required for web debugging. "
+                "Install it with: pip install pytest-anki[selenium]"
+            )
+
     def _switch_chrome_driver_to_web_view(
-        self, driver: webdriver.Chrome, web_view_title: str
+        self, driver: "ChromeDriver", web_view_title: str
     ):
         for window_handle in driver.window_handles:
             driver.switch_to.window(window_handle)
@@ -340,19 +372,21 @@ class AnkiSession:
 
     def run_with_chrome_driver(
         self,
-        test_function: Callable[[webdriver.Chrome], Optional[bool]],
+        test_function: Callable[["ChromeDriver"], Optional[bool]],
         target_web_view: Optional[Union[AnkiWebViewType, str]] = None,
         timeout: int = 5000,
     ):
         """[summary]
 
         Args:
-            test_function (Callable[[webdriver.Chrome], Optional[bool]]): [description]
+            test_function (Callable[[ChromeDriver], Optional[bool]]): [description]
             target_web_view: Web view as identified by its title. Defaults to None.
             timeout: Time to wait for task to complete until qtbot raises a TimeoutError
         """
         if self._web_debugging_port is None:
             raise AnkiSessionError("Web debugging interface is not active")
+
+        _webdriver = self._get_selenium_webdriver()
 
         web_view_title: Optional[str]
 
@@ -363,11 +397,11 @@ class AnkiSession:
 
         def test_wrapper() -> Optional[bool]:
             if not self._chrome_driver:
-                options = webdriver.ChromeOptions()
+                options = _webdriver.ChromeOptions()
                 options.add_experimental_option(
                     "debuggerAddress", f"127.0.0.1:{self._web_debugging_port}"
                 )
-                self._chrome_driver = webdriver.Chrome(options=options)
+                self._chrome_driver = _webdriver.Chrome(options=options)
 
             if web_view_title:
                 self._switch_chrome_driver_to_web_view(
