@@ -1,0 +1,258 @@
+# pytest-anki
+#
+# Copyright (C)  2019-2025 Aristotelis P. <https://glutanimate.com/>
+#                and contributors (see CONTRIBUTORS file)
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version, with the additions
+# listed at the end of the license file that accompanied this program.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# NOTE: This program is subject to certain additional terms pursuant to
+# Section 7 of the GNU Affero General Public License.  You should have
+# received a copy of these additional terms immediately following the
+# terms and conditions of the GNU Affero General Public License that
+# accompanied this program.
+#
+# If not, please request a copy through one of the means of contact
+# listed here: <https://glutanimate.com/>.
+
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import textwrap
+from typing import Any, Dict, Optional
+
+_STANDALONE_QT_BOT_CODE = r"""
+import os, sys, json
+
+# Auto-detect Qt binding (mirrors compat.py logic)
+_QT_API_MAP = {"qt5": "PyQt5", "pyqt5": "PyQt5", "qt6": "PyQt6", "pyqt6": "PyQt6"}
+_qt_api = os.environ.get("QT_API", "").strip().lower()
+_qt_prefix = _QT_API_MAP.get(_qt_api)
+if _qt_prefix is None:
+    for _prefix in ("PyQt6", "PyQt5"):
+        try:
+            __import__(_prefix)
+            _qt_prefix = _prefix
+            break
+        except ImportError:
+            continue
+    else:
+        raise ImportError("No Qt bindings found (PyQt5 or PyQt6)")
+
+if _qt_prefix == "PyQt6":
+    from PyQt6.QtCore import QCoreApplication, QEventLoop, Qt as _Qt, QTimer as _QTimer
+    from PyQt6.QtWidgets import QApplication as _QApplication
+    # Qt6: AA_ShareOpenGLContexts must be set before QCoreApplication.
+    # Fall back to importing WebEngineWidgets if attribute doesn't exist.
+    _aa_share = getattr(_Qt, "AA_ShareOpenGLContexts", None)
+    if _aa_share is not None:
+        QCoreApplication.setAttribute(_aa_share)
+    else:
+        try:
+            from PyQt6.QtWebEngineWidgets import QWebEngineView  # noqa: F401
+        except ImportError:
+            pass
+    _ALL_EVENTS = QEventLoop.ProcessEventsFlag.AllEvents
+else:
+    from PyQt5.QtCore import QCoreApplication, QEventLoop, QTimer as _QTimer
+    from PyQt5.QtWidgets import QApplication as _QApplication
+    # Qt5: QtWebEngineWidgets must be imported before QCoreApplication
+    try:
+        from PyQt5.QtWebEngineWidgets import QWebEngineView  # noqa: F401
+    except ImportError:
+        pass
+    _ALL_EVENTS = QEventLoop.AllEvents
+
+# Ensure a QCoreApplication exists for event-loop-based wait_signal.
+# Use QCoreApplication (not QApplication) so that Anki can later create
+# its own QApplication (AnkiApp) without conflicts.
+if not QCoreApplication.instance():
+    _core_app = QCoreApplication([])
+
+
+class _SignalCatcher:
+    # Matches QtBot.wait_signal behavior: connect in __enter__, wait in __exit__
+    def __init__(self, signal, timeout=5000):
+        self.signal = signal
+        self.timeout = timeout
+        self.args = None
+        self._received = False
+
+    def __enter__(self):
+        self.signal.connect(self._on_signal)
+        return self
+
+    def __exit__(self, *args):
+        if not self._received:
+            _loop = QEventLoop()
+            _QTimer.singleShot(self.timeout, _loop.quit)
+            self.signal.connect(_loop.quit)
+            _loop.exec()
+            if not self._received:
+                raise TimeoutError(
+                    "Signal not received within {}ms".format(self.timeout)
+                )
+        try:
+            self.signal.disconnect(self._on_signal)
+        except TypeError:
+            pass
+
+    def _on_signal(self, *args):
+        self._received = True
+        self.args = args
+
+
+class _StandaloneQtBot:
+    def wait_signal(self, signal, timeout=5000):
+        return _SignalCatcher(signal, timeout)
+
+    def wait_until(self, callback, timeout=15000):
+        import time
+        _deadline = time.time() + timeout / 1000.0
+        while time.time() < _deadline:
+            try:
+                _result = callback()
+            except AssertionError:
+                pass
+            else:
+                if _result is None:
+                    return
+                if _result:
+                    return
+            # Use a brief event loop to process I/O and IPC events that
+            # processEvents() alone may not handle (e.g. QWebChannel IPC)
+            _loop = QEventLoop()
+            _QTimer.singleShot(50, _loop.quit)
+            _loop.exec()
+        raise TimeoutError("Condition not met within {}ms".format(timeout))
+
+
+_qtbot = _StandaloneQtBot()
+"""
+
+
+def run_in_subprocess(
+    body_source: str,
+    env: Optional[Dict[str, str]] = None,
+    timeout: int = 60,
+) -> Dict[str, Any]:
+    """Run test code in a fresh subprocess with isolated env vars.
+
+    Sets the given env vars (including QTWEBENGINE_REMOTE_DEBUGGING) before
+    any Qt imports, then provides a standalone QtBot (``_qtbot``) supporting
+    ``wait_signal`` and ``wait_until``.
+
+    The *body_source* is indented into a ``_run_test()`` function and wrapped
+    with error handling. The last line of stdout should be a JSON dict with at
+    least a ``"status"`` key (``"passed"``, ``"skipped"``, or ``"failed"``).
+
+    Returns a dict with keys ``status``, ``message`` (optional),
+    ``stderr`` / ``stdout`` (truncated on failure).
+    """
+    if env is None:
+        env = {}
+    env_assignments = "\n".join(
+        "os.environ[{}] = {}".format(json.dumps(k), json.dumps(v))
+        for k, v in env.items()
+    )
+
+    _project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+
+    full_code = (
+        "import os, sys, json\n"
+        + env_assignments
+        + "\n"
+        + "sys.path.insert(0, {})\n".format(json.dumps(_project_root))
+        + _STANDALONE_QT_BOT_CODE
+        + "\n"
+        + "def _run_test():\n"
+        + textwrap.indent(body_source, "    ")
+        + "\n"
+        + "try:\n"
+        + "    _run_test()\n"
+        + "except SystemExit:\n"
+        + "    raise\n"
+        + "except BaseException:\n"
+        + "    import traceback\n"
+        + "    _tb = traceback.format_exc()\n"
+        + "    sys.stderr.write(_tb)\n"
+        + "    print(json.dumps({'status': 'failed', 'message': _tb}))\n"
+        + "    sys.exit(1)\n"
+    )
+
+    result: Dict[str, Any]
+    fd, script_path = tempfile.mkstemp(suffix=".py", prefix="pytest_anki_web_")
+    with os.fdopen(fd, "w") as f:
+        f.write(full_code)
+
+    try:
+        proc = subprocess.run(
+            [sys.executable, script_path],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        result = {
+            "status": "timeout",
+            "message": "Subprocess timed out after {}s".format(timeout),
+        }
+        return result
+    except Exception as e:
+        result = {
+            "status": "error",
+            "message": "Subprocess invocation failed: {}".format(e),
+        }
+        return result
+    finally:
+        if os.path.exists(script_path):
+            os.unlink(script_path)
+
+    stdout = proc.stdout or ""
+    stderr = proc.stderr or ""
+
+    # Parse the last JSON line from stdout
+    parsed = _parse_last_json_line(stdout)
+
+    if parsed is None:
+        result = {
+            "status": "error",
+            "message": "Could not parse subprocess output",
+            "stdout": stdout[:2000],
+            "stderr": stderr[:2000],
+        }
+    else:
+        result = parsed
+
+    # Attach diagnostics on failure
+    if result.get("status") in ("error", "failed", "timeout"):
+        result.setdefault("stderr", stderr[:3000])
+        result.setdefault("stdout", stdout[:2000])
+
+    return result
+
+
+def _parse_last_json_line(text: str) -> Optional[Dict[str, Any]]:
+    for line in reversed(text.strip().split("\n")):
+        line = line.strip()
+        if line.startswith("{") and line.endswith("}"):
+            try:
+                return json.loads(line)
+            except json.JSONDecodeError:
+                continue
+    return None

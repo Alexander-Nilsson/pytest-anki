@@ -31,6 +31,7 @@
 # Any modifications to this file must keep this entire header intact.
 
 
+import sys
 import uuid
 from argparse import Namespace
 from contextlib import contextmanager
@@ -100,6 +101,11 @@ def post_ui_setup_callback_factory(
             )
 
         if not skip_loading_addons:
+            # Remove stale addon modules from sys.modules so loadAddons()
+            # performs a fresh import from the current addons21 directory
+            for addon_meta in main_window.addonManager.all_addon_meta():
+                if addon_meta.dir_name in sys.modules:
+                    del sys.modules[addon_meta.dir_name]
             main_window.addonManager.loadAddons()
 
     return post_ui_setup_callback

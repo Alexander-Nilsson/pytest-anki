@@ -59,12 +59,12 @@ jobs:
             python: 3.12.9
             qt: qt6-2509
             qt-api: pyqt6
-            chrome: 132.0.6834.83
+            chrome: 122.0.6261.171
           - anki: anki-2509
             python: 3.13.3
             qt: qt6-2509
             qt-api: pyqt6
-            chrome: 132.0.6834.83
+            chrome: 122.0.6261.171
             selenium: true
           - anki: anki-2154
             python: 3.9.15

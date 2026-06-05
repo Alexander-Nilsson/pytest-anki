@@ -38,7 +38,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple
 from unittest import mock
 
-from anki.errors import BackendIOError
 from packaging.version import Version
 
 from .anki import (
@@ -188,6 +187,9 @@ def anki_running(
     import aqt
     from aqt import gui_hooks
 
+    # Snapshot gui_hooks state before registering any
+    _initial_profile_hooks = list(getattr(gui_hooks.profile_did_open, "_hooks", []))
+
     with base_directory(base_path=base_path, base_name=base_name) as anki_base_dir:
         # Callback to run between main UI initialization and finishing steps of UI
         # initialization (add-on loading time)
@@ -217,9 +219,6 @@ def anki_running(
             preset_anki_state.colconf_storage or preset_anki_state.profile_storage
         ):
             gui_hooks.profile_did_open.append(profile_loaded_callback)
-            profile_hooked = True
-        else:
-            profile_hooked = False
 
         # Start Anki session
 
@@ -317,15 +316,23 @@ def anki_running(
             pass
         aqt.mw.deleteLater()
 
-    # remove hooks added by pytest-anki
-
-    if profile_hooked:
-        gui_hooks.profile_did_open.remove(profile_loaded_callback)
+    # Restore gui_hooks to pre-session state (addons may have registered hooks)
+    gui_hooks.profile_did_open._hooks[:] = _initial_profile_hooks
 
     # remove hooks added during app initialization
     from anki import hooks
 
     hooks._hooks = {}
+
+    # Remove addon modules from sys.modules to prevent stale imports
+    # in subsequent tests running in the same process
+    import sys as _sys
+
+    for _mod_name in list(_sys.modules):
+        _mod = _sys.modules[_mod_name]
+        if _mod is not None and hasattr(_mod, "__file__") and _mod.__file__:
+            if anki_base_dir in str(_mod.__file__):
+                del _sys.modules[_mod_name]
 
     # test_nextIvl will fail on some systems if the locales are not restored
     import locale

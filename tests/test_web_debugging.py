@@ -32,12 +32,115 @@ import time
 from unittest.mock import Mock
 
 import pytest
-import requests
 from pytestqt.qtbot import TimeoutError
 
 from pytest_anki import AnkiSession, AnkiSessionError, AnkiWebViewType
+from pytest_anki._plugin.subprocess import run_in_subprocess
 
-_WEB_PARAMS = dict(enable_web_debugging=True)
+_WEB_DEBUGGING_AVAILABLE_BODY = r"""
+import requests
+from pytest_anki._plugin.launch import anki_running
+
+with anki_running(qtbot=_qtbot, enable_web_debugging=True) as session:
+    port = session.web_debugging_port
+
+    def assert_web_debugging_interface_up():
+        result = requests.get(f"http://127.0.0.1:{port}/")
+        assert result.status_code == 200
+        assert "Inspectable pages" in result.text
+
+    session.run_in_thread_and_wait(assert_web_debugging_interface_up)
+
+print(json.dumps({"status": "passed"}))
+"""
+
+_WEB_DRIVER_CONNECT_BODY = r"""
+try:
+    import selenium.webdriver
+except ImportError:
+    print(json.dumps({"status": "skipped", "reason": "selenium not installed"}))
+    sys.exit(0)
+
+from pytest_anki._plugin.launch import anki_running
+
+with anki_running(qtbot=_qtbot, enable_web_debugging=True) as session:
+    def assert_web_driver_connected(driver):
+        assert driver.window_handles
+
+    session.run_with_chrome_driver(assert_web_driver_connected)
+
+print(json.dumps({"status": "passed"}))
+"""
+
+_WEB_DRIVER_SELECT_WEB_VIEW_BODY = r"""
+try:
+    import selenium.webdriver
+except ImportError:
+    print(json.dumps({"status": "skipped", "reason": "selenium not installed"}))
+    sys.exit(0)
+
+from pytest_anki import AnkiWebViewType
+from pytest_anki._plugin.launch import anki_running
+
+with anki_running(qtbot=_qtbot, enable_web_debugging=True) as session:
+    def assert_web_driver_connected_to_main_web_view(driver):
+        assert driver.title == AnkiWebViewType.main_webview.value
+
+    with session.profile_loaded():
+        session.run_with_chrome_driver(
+            assert_web_driver_connected_to_main_web_view, AnkiWebViewType.main_webview
+        )
+
+print(json.dumps({"status": "passed"}))
+"""
+
+_WEB_DRIVER_INTERACT_BODY = r"""
+try:
+    import selenium.webdriver
+except ImportError:
+    print(json.dumps({"status": "skipped", "reason": "selenium not installed"}))
+    sys.exit(0)
+
+from pytest_anki import AnkiWebViewType
+from pytest_anki._plugin.launch import anki_running
+
+with anki_running(qtbot=_qtbot, enable_web_debugging=True) as session:
+    def switch_to_deck_view(driver):
+        driver.find_element("xpath", "//*[text()='Default']").click()
+
+    with session.profile_loaded():
+        assert session.mw.state == "deckBrowser"
+        session.run_with_chrome_driver(
+            switch_to_deck_view, AnkiWebViewType.main_webview
+        )
+
+        def mw_state_switched():
+            assert session.mw.state == "overview"
+
+        session.qtbot.wait_until(mw_state_switched)
+
+print(json.dumps({"status": "passed"}))
+"""
+
+
+def _check_result(result):
+    status = result.get("status")
+    if status == "passed":
+        return
+    elif status == "skipped":
+        pytest.skip(result.get("reason", "Test skipped internally"))
+    elif status == "failed":
+        message = result.get("message", "Test failed")
+        stderr = result.get("stderr")
+        if stderr:
+            message += "\n--- stderr ---\n" + stderr
+        pytest.fail(message)
+    elif status == "timeout":
+        pytest.fail("Test timed out: " + result.get("message", ""))
+    elif status == "error":
+        pytest.fail("Subprocess error: " + result.get("message", ""))
+    else:
+        pytest.fail("Unknown subprocess status: {}".format(result))
 
 
 def test_run_in_thread(anki_session: AnkiSession):
@@ -75,58 +178,36 @@ def test_can_supply_timeout(anki_session: AnkiSession):
         )
 
 
-@pytest.mark.parametrize("anki_session", [_WEB_PARAMS], indirect=True)
-def test_web_debugging_available_on_launch(anki_session: AnkiSession):
-    port = anki_session.web_debugging_port
-
-    def assert_web_debugging_interface_up():
-        result = requests.get(f"http://127.0.0.1:{port}/")
-        assert result.status_code == 200
-        assert "Inspectable pages" in result.text
-
-    anki_session.run_in_thread_and_wait(assert_web_debugging_interface_up)
+def test_web_debugging_available_on_launch():
+    result = run_in_subprocess(
+        _WEB_DEBUGGING_AVAILABLE_BODY,
+        env={"QTWEBENGINE_REMOTE_DEBUGGING": "1"},
+    )
+    _check_result(result)
 
 
-@pytest.mark.parametrize("anki_session", [_WEB_PARAMS], indirect=True)
-def test_web_driver_can_connect(anki_session: AnkiSession):
-    pytest.importorskip("selenium.webdriver")
-
-    def assert_web_driver_connected(driver):  # type: ignore[name-defined]  # optional selenium dep
-        assert driver.window_handles
-
-    anki_session.run_with_chrome_driver(assert_web_driver_connected)
+def test_web_driver_can_connect():
+    result = run_in_subprocess(
+        _WEB_DRIVER_CONNECT_BODY,
+        env={"QTWEBENGINE_REMOTE_DEBUGGING": "1"},
+    )
+    _check_result(result)
 
 
-@pytest.mark.parametrize("anki_session", [_WEB_PARAMS], indirect=True)
-def test_web_driver_can_select_web_view(anki_session: AnkiSession):
-    pytest.importorskip("selenium.webdriver")
-
-    def assert_web_driver_connected_to_main_web_view(driver):  # type: ignore[name-defined]  # optional selenium dep
-        assert driver.title == AnkiWebViewType.main_webview.value
-
-    with anki_session.profile_loaded():
-        anki_session.run_with_chrome_driver(
-            assert_web_driver_connected_to_main_web_view, AnkiWebViewType.main_webview
-        )
+def test_web_driver_can_select_web_view():
+    result = run_in_subprocess(
+        _WEB_DRIVER_SELECT_WEB_VIEW_BODY,
+        env={"QTWEBENGINE_REMOTE_DEBUGGING": "1"},
+    )
+    _check_result(result)
 
 
-@pytest.mark.parametrize("anki_session", [_WEB_PARAMS], indirect=True)
-def test_web_driver_can_interact_with_anki(anki_session: AnkiSession):
-    pytest.importorskip("selenium.webdriver")
-
-    def switch_to_deck_view(driver):  # type: ignore[name-defined]  # optional selenium dep
-        driver.find_element("xpath", "//*[text()='Default']").click()
-
-    with anki_session.profile_loaded():
-        assert anki_session.mw.state == "deckBrowser"
-        anki_session.run_with_chrome_driver(
-            switch_to_deck_view, AnkiWebViewType.main_webview
-        )
-
-        def mw_state_switched():
-            assert anki_session.mw.state == "overview"
-
-        anki_session.qtbot.wait_until(mw_state_switched)
+def test_web_driver_can_interact_with_anki():
+    result = run_in_subprocess(
+        _WEB_DRIVER_INTERACT_BODY,
+        env={"QTWEBENGINE_REMOTE_DEBUGGING": "1"},
+    )
+    _check_result(result)
 
 
 @pytest.mark.env({"QTWEBENGINE_REMOTE_DEBUGGING": "12345"})
