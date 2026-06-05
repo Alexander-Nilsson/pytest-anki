@@ -30,8 +30,6 @@ dependencies = [
     "pytest>=7.0",
     "pytest-qt~=4.4.0",
     "packaging~=21.3",
-    "aqt>=2.1.54",
-    "anki>=2.1.54",
 ]
 
 [project.urls]
@@ -134,7 +132,7 @@ qt6-pypi = ["PyQt6>=6.3.1", "PyQt6-Qt6>=6.3.1", "PyQt6-WebEngine>=6.3.1", "PyQt6
 
 [tool.uv]
 constraint-dependencies = ["protobuf>=6.31.1,<7"]
-default-groups = ["dev", "qt5", "qt6-pypi", "anki"]
+default-groups = ["dev", "qt5", "qt6-pypi"]
 conflicts = [
     [
         { extra = "anki-2154" },

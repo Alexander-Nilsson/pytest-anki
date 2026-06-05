@@ -26,4 +26,4 @@ runs:
     - name: Set up pytest-anki
       shell: bash
       run: |
-        uv sync --only-group dev --extra ${{ inputs.anki }} --extra ${{ inputs.qt }}
+        uv sync --no-default-groups --group dev --extra ${{ inputs.anki }} --extra ${{ inputs.qt }}
