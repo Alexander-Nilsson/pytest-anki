@@ -18,12 +18,31 @@ runs:
     - name: Set up chromedriver
       shell: bash
       run: |
+        set -euo pipefail
         chrome_version=${{ inputs.chrome }}
-        truncated_version=${chrome_version%.*}
-        driver_version=$(curl --location --fail --retry 10 "http://chromedriver.storage.googleapis.com/LATEST_RELEASE_${truncated_version}")
-        wget -c -nc --retry-connrefused --tries=0 "https://chromedriver.storage.googleapis.com/${driver_version}/chromedriver_linux64.zip"
+        milestone="${chrome_version%%.*}"
+
+        # Try legacy chromedriver API first (Chrome <115)
+        legacy_url="http://chromedriver.storage.googleapis.com/LATEST_RELEASE_${milestone}"
+        cft_json_url="https://googlechromelabs.github.io/chrome-for-testing/latest-versions-per-milestone-with-downloads.json"
+
+        if driver_version=$(curl --location --fail --retry 3 --retry-delay 2 "$legacy_url" 2>/dev/null); then
+          download_url="https://chromedriver.storage.googleapis.com/${driver_version}/chromedriver_linux64.zip"
+        else
+          # Fall back to Chrome for Testing API
+          driver_version=$(curl --location --fail --retry 3 --retry-delay 2 "$cft_json_url" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['milestones']['${milestone}']['version'])")
+          download_url="https://storage.googleapis.com/chrome-for-testing-public/${driver_version}/linux64/chromedriver-linux64.zip"
+        fi
+
+        wget -c -nc --retry-connrefused --tries=3 -q "$download_url" -O chromedriver_linux64.zip
         unzip -o -q "chromedriver_linux64.zip"
-        sudo mv chromedriver /usr/local/bin/chromedriver
+        # Legacy API: chromedriver at root; CfT API: in chromedriver-linux64/
+        if [ -f chromedriver ]; then
+          sudo mv chromedriver /usr/local/bin/chromedriver
+        else
+          sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
+        fi
         rm "chromedriver_linux64.zip"
 
     - name: Set up Python ${{ inputs.python }}

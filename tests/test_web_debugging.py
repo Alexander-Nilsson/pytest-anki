@@ -37,9 +37,6 @@ from pytestqt.qtbot import TimeoutError
 
 from pytest_anki import AnkiSession, AnkiSessionError, AnkiWebViewType
 
-selenium = pytest.importorskip("selenium")
-webdriver = selenium.webdriver
-
 _WEB_PARAMS = dict(enable_web_debugging=True)
 
 
@@ -92,7 +89,9 @@ def test_web_debugging_available_on_launch(anki_session: AnkiSession):
 
 @pytest.mark.parametrize("anki_session", [_WEB_PARAMS], indirect=True)
 def test_web_driver_can_connect(anki_session: AnkiSession):
-    def assert_web_driver_connected(driver: webdriver.Chrome):  # type: ignore[name-defined]  # optional selenium dep
+    pytest.importorskip("selenium.webdriver")
+
+    def assert_web_driver_connected(driver):  # type: ignore[name-defined]  # optional selenium dep
         assert driver.window_handles
 
     anki_session.run_with_chrome_driver(assert_web_driver_connected)
@@ -100,7 +99,9 @@ def test_web_driver_can_connect(anki_session: AnkiSession):
 
 @pytest.mark.parametrize("anki_session", [_WEB_PARAMS], indirect=True)
 def test_web_driver_can_select_web_view(anki_session: AnkiSession):
-    def assert_web_driver_connected_to_main_web_view(driver: webdriver.Chrome):  # type: ignore[name-defined]  # optional selenium dep
+    pytest.importorskip("selenium.webdriver")
+
+    def assert_web_driver_connected_to_main_web_view(driver):  # type: ignore[name-defined]  # optional selenium dep
         assert driver.title == AnkiWebViewType.main_webview.value
 
     with anki_session.profile_loaded():
@@ -111,7 +112,9 @@ def test_web_driver_can_select_web_view(anki_session: AnkiSession):
 
 @pytest.mark.parametrize("anki_session", [_WEB_PARAMS], indirect=True)
 def test_web_driver_can_interact_with_anki(anki_session: AnkiSession):
-    def switch_to_deck_view(driver: webdriver.Chrome):  # type: ignore[name-defined]  # optional selenium dep
+    pytest.importorskip("selenium.webdriver")
+
+    def switch_to_deck_view(driver):  # type: ignore[name-defined]  # optional selenium dep
         driver.find_element("xpath", "//*[text()='Default']").click()
 
     with anki_session.profile_loaded():

@@ -78,7 +78,7 @@ def temporary_user(anki_base_dir: str, name: str, lang: str) -> Iterator[str]:
     else:
         base_dir_path = anki_base_dir
 
-    pm = ProfileManager(base=base_dir_path)
+    pm = ProfileManager(base=base_dir_path)  # type: ignore[arg-type]
 
     pm.setupMeta()
     pm.setLang(lang)
@@ -305,15 +305,17 @@ def anki_running(
                     # Undo monkey-patch if applied
                     set_qt_message_handler_installer(qInstallMessageHandler)
 
-    # NOTE: clean up does not seem to work properly in all cases,
-    # so use forked execution for now
-
-    # clean up what was spoiled
     if aqt.mw:
         try:
-            aqt.mw.cleanupAndExit()
-        except BackendIOError:
+            aqt.mw.errorHandler.unload()
+            aqt.mw.mediaServer.shutdown()
+        except Exception:
             pass
+        try:
+            aqt.mw.backend.await_backup_completion()
+        except Exception:
+            pass
+        aqt.mw.deleteLater()
 
     # remove hooks added by pytest-anki
 

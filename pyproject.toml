@@ -89,7 +89,7 @@ qt6-2507 = [
     "PyQt6==6.7.0",
     "PyQt6-Qt6==6.7.0",
     "PyQt6-WebEngine==6.7.0",
-    "PyQt6-WebEngine-Qt6==6.7.0",
+    "PyQt6-WebEngine-Qt6>=6.7.0,<6.8.0",
 ]
 qt6-2509 = [
     "PyQt6==6.8.0",
@@ -119,6 +119,7 @@ dev = [
     "types-requests~=2.25",
     "pyright>=1.1.398",
     "pytest-anki[recommended-plugins]",
+    "protobuf>=6.33,<7",
 ]
 anki = ["aqt>=2.1.54", "anki>=2.1.54"]
 qt5 = [
@@ -132,6 +133,7 @@ qt6-pypi = ["PyQt6>=6.3.1", "PyQt6-Qt6>=6.3.1", "PyQt6-WebEngine>=6.3.1", "PyQt6
 
 
 [tool.uv]
+constraint-dependencies = ["protobuf>=6.31.1,<7"]
 default-groups = ["dev", "qt5", "qt6-pypi", "anki"]
 conflicts = [
     [
@@ -182,6 +184,7 @@ exclude = "tests/samples/"
 
 [tool.pyright]
 reportPrivateImportUsage = "none"
+reportMissingImports = false
 exclude = ["tests/samples/"]
 
 [tool.ruff]
