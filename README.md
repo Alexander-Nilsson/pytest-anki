@@ -19,7 +19,7 @@ def test_addon_registers_deck(anki_session: AnkiSession):
 
 The goal is to provide add-on authors with a one-stop-shop for their functional testing needs, while also enabling them to QA their add-ons against a battery of different Anki versions, catching incompatibilities as they arise.
 
-![PyPI](https://img.shields.io/pypi/v/pytest-anki) <a title="License: GNU AGPLv3" href="https://github.com/glutanimate/anki-addon-builder/blob/master/LICENSE"><img  src="https://img.shields.io/badge/license-GNU AGPLv3-f37f40.svg"></a>  <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>  [![CI](https://github.com/glutanimate/pytest-anki/actions/workflows/general.yml/badge.svg)](https://github.com/glutanimate/pytest-anki/actions/workflows/general.yml) 
+[![CI](https://github.com/Alexander-Nilsson/pytest-anki/actions/workflows/general.yml/badge.svg)](https://github.com/Alexander-Nilsson/pytest-anki/actions/workflows/general.yml)
 
 ## Disclaimer
 
@@ -325,7 +325,7 @@ Especially if you run your tests headlessly with `xvfb`, you might run into case
 Contributions are welcome! To set up `pytest-anki` for development, please first make sure you have Python 3.9+ and [uv](https://docs.astral.sh/uv/) installed, then run the following steps:
 
 ```
-$ git clone https://github.com/glutanimate/pytest-anki.git
+$ git clone https://github.com/Alexander-Nilsson/pytest-anki.git
 
 $ cd pytest-anki
 
@@ -350,7 +350,7 @@ make format
 
 *pytest-anki* is
 
-*Copyright © 2019-2025 [Aristotelis P.](https://glutanimate.com/contact/) (Glutanimate) and [contributors](./CONTRIBUTORS)*
+*Copyright © 2019-2025 Aristotelis P. (Glutanimate) and [contributors](./CONTRIBUTORS)*
 
 *Copyright © 2017-2019 [Michal Krassowski](https://github.com/krassowski/anki_testing)*
 
@@ -361,6 +361,6 @@ All credits for the original idea for creating a context manager to test Anki ad
 
 I would also like to extend a heartfelt thanks to [AMBOSS](https://github.com/amboss-mededu/) for their major part in supporting the development of this plugin! Most of the recent feature additions leading up to v1.0.0 of the plugin were implemented as part of my work on the [AMBOSS add-on](https://www.amboss.com/us/anki-amboss).
 
-_pytest-anki_ is free and open-source software. Its source-code is released under the GNU AGPLv3 license, extended by a number of additional terms. For more information please see the [license file](https://github.com/glutanimate/pytest-anki/blob/master/LICENSE) that accompanies this program.
+_pytest-anki_ is free and open-source software. Its source-code is released under the GNU AGPLv3 license, extended by a number of additional terms. For more information please see the [license file](./LICENSE) that accompanies this program.
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY. Please see the license file for more details.

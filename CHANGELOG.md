@@ -36,4 +36,4 @@
 
 ## 1.0.0b7
 
-- Last stable release on PyPI. See [GitHub releases](https://github.com/glutanimate/pytest-anki/releases) for earlier changelogs.
+- Last stable release on PyPI. See [GitHub releases](https://github.com/Alexander-Nilsson/pytest-anki/releases) for earlier changelogs.
