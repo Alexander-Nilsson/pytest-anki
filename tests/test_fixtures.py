@@ -127,6 +127,28 @@ def test_can_install_addons(anki_session: AnkiSession):
         assert getattr(main_window, package) is True
 
 
+@pytest.mark.parametrize(
+    ANKI_SESSION,
+    [dict(
+        packed_addons=_packed_addons,
+        unpacked_addons=_unpacked_addons,
+        skip_loading_addons=True,
+    )],
+    indirect=True,
+)
+def test_can_skip_loading_addons(anki_session: AnkiSession):
+    main_window = anki_session.mw
+    all_addons = anki_session.mw.addonManager.allAddons()
+
+    for package in _packages:
+        assert package in all_addons
+        assert package not in sys.modules
+        assert not hasattr(main_window, package)
+
+    anki_session.load_addon(_packages[0])
+    assert _packages[0] in sys.modules
+
+
 _state_checker_addon_package = "state_checker_addon"
 _state_checker_addon_path = _addons_path / "advanced" / _state_checker_addon_package
 
