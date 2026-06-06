@@ -1,6 +1,5 @@
 import json
 import socket
-from pathlib import Path
 
 import pytest
 

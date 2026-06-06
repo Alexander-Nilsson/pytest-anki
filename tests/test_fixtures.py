@@ -129,11 +129,13 @@ def test_can_install_addons(anki_session: AnkiSession):
 
 @pytest.mark.parametrize(
     ANKI_SESSION,
-    [dict(
-        packed_addons=_packed_addons,
-        unpacked_addons=_unpacked_addons,
-        skip_loading_addons=True,
-    )],
+    [
+        dict(
+            packed_addons=_packed_addons,
+            unpacked_addons=_unpacked_addons,
+            skip_loading_addons=True,
+        )
+    ],
     indirect=True,
 )
 def test_can_skip_loading_addons(anki_session: AnkiSession):
