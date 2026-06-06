@@ -108,7 +108,7 @@ def base_directory(base_path: str, base_name: str) -> Iterator[str]:
 @contextmanager
 def anki_running(
     qtbot: "QtBot",
-    base_path: str = tempfile.gettempdir(),
+    base_path: Optional[str] = None,
     base_name: str = "anki_base",
     profile_name: str = "User 1",
     lang: str = "en_US",
@@ -183,6 +183,9 @@ def anki_running(
      Yields:
          Iterator[AnkiSession] -- [description]
     """
+
+    if base_path is None:
+        base_path = tempfile.gettempdir()
 
     import aqt
     from aqt import gui_hooks
