@@ -28,7 +28,9 @@
 #
 # Any modifications to this file must keep this entire header intact.
 
+import logging
 import re
+import sys
 from contextlib import contextmanager
 from types import ModuleType
 from typing import (
@@ -43,6 +45,8 @@ from typing import (
     Tuple,
     Union,
 )
+
+logger = logging.getLogger(__name__)
 
 from .addons import ConfigPaths, create_addon_config
 from .anki import (
@@ -235,9 +239,43 @@ class AnkiSession:
     # Add-on loading ####
 
     def load_addon(self, package_name: str) -> ModuleType:
-        """Dynamically import an add-on as specified by its package name"""
-        addon_package = __import__(package_name)
+        """Dynamically import an add-on as specified by its package name.
+
+        Raises:
+            AnkiSessionError: If the add-on module cannot be imported.
+        """
+        try:
+            addon_package = __import__(package_name)
+        except ImportError as exc:
+            raise AnkiSessionError(
+                f"Failed to import add-on '{package_name}': {exc}. "
+                f"Ensure the add-on is installed in Anki's add-ons directory "
+                f"(addons21/{package_name})."
+            ) from exc
         return addon_package
+
+    @contextmanager
+    def loaded_addon(self, package_name: str) -> Iterator[ModuleType]:
+        """Context manager that loads an add-on and cleans it from
+        ``sys.modules`` on exit, allowing re-import in subsequent tests.
+
+        Usage::
+
+            with anki_session.loaded_addon("my_addon") as mod:
+                assert mod.some_function()
+        """
+        addon_module = self.load_addon(package_name)
+        try:
+            yield addon_module
+        finally:
+            self._unload_addon(package_name)
+
+    @staticmethod
+    def _unload_addon(package_name: str):
+        """Remove an add-on package and its submodules from sys.modules."""
+        for mod_name in list(sys.modules.keys()):
+            if mod_name == package_name or mod_name.startswith(package_name + "."):
+                del sys.modules[mod_name]
 
     # Add-on config handling ####
 
@@ -316,11 +354,18 @@ class AnkiSession:
             task=task, task_args=task_args, task_kwargs=task_kwargs
         )
 
-        with self._qtbot.wait_signal(worker.signals.finished, timeout=timeout):
-            thread_pool.start(worker)
+        try:
+            with self._qtbot.wait_signal(worker.signals.finished, timeout=timeout):
+                thread_pool.start(worker)
+        except Exception as exc:
+            raise AnkiSessionError(
+                f"Task did not complete within {timeout}ms timeout: {exc}"
+            ) from exc
 
         if exception := worker.error:
-            raise exception
+            raise AnkiSessionError(
+                f"Task raised an exception: {exception}"
+            ) from exception
 
         return worker.result
 
