@@ -33,6 +33,7 @@
 import os
 import shutil
 import tempfile
+import warnings
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple
@@ -308,12 +309,12 @@ def anki_running(
         try:
             aqt.mw.errorHandler.unload()
             aqt.mw.mediaServer.shutdown()
-        except Exception:
-            pass
+        except Exception as exc:
+            warnings.warn(f"Error during Anki session teardown: {exc}")
         try:
             aqt.mw.backend.await_backup_completion()
-        except Exception:
-            pass
+        except Exception as exc:
+            warnings.warn(f"Error waiting for backup completion: {exc}")
         aqt.mw.deleteLater()
 
     # Restore gui_hooks to pre-session state (addons may have registered hooks)
