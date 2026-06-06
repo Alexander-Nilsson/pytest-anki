@@ -69,15 +69,12 @@ QTWEBENGINE_REMOTE_DEBUGGING = "QTWEBENGINE_REMOTE_DEBUGGING"
 def temporary_user(anki_base_dir: str, name: str, lang: str) -> Iterator[str]:
     from aqt.profiles import ProfileManager
 
-    if TYPE_CHECKING:  # < 2.1.56 primary dev target
-        base_dir_path: str
-
     if get_anki_version() >= Version("2.1.56"):
-        base_dir_path = Path(anki_base_dir)  # type: ignore[assignment]  # ProfileManager accepts str | Path at runtime
+        base_dir_path: Any = Path(anki_base_dir)
     else:
         base_dir_path = anki_base_dir
 
-    pm = ProfileManager(base=base_dir_path)  # type: ignore[arg-type]
+    pm = ProfileManager(base=base_dir_path)
 
     pm.setupMeta()
     pm.setLang(lang)

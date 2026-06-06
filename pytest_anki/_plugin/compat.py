@@ -46,34 +46,26 @@ QT_PREFIX = _QT_PREFIX
 
 def _import_qt_core() -> Any:
     if _QT_PREFIX == "PyQt6":
-        from PyQt6 import (  # type: ignore[no-redef]
-            QtCore as m,
-        )
+        from PyQt6 import QtCore
     else:
-        from PyQt5 import (  # type: ignore[no-redef]
-            QtCore as m,
-        )
-    return m
+        from PyQt5 import QtCore
+    return QtCore
 
 
 def _import_qt_webengine() -> Any:
     if _QT_PREFIX == "PyQt6":
-        from PyQt6.QtWebEngineCore import QWebEngineProfile as m
+        from PyQt6.QtWebEngineCore import QWebEngineProfile
     else:
-        from PyQt5.QtWebEngineWidgets import (  # type: ignore[no-redef,assignment]
-            QWebEngineProfile as m,
-        )
-    return m
+        from PyQt5.QtWebEngineWidgets import QWebEngineProfile
+    return QWebEngineProfile
 
 
 def _import_qt_widgets() -> Any:
     if _QT_PREFIX == "PyQt6":
-        from PyQt6.QtWidgets import QMainWindow as m
+        from PyQt6.QtWidgets import QMainWindow
     else:
-        from PyQt5.QtWidgets import (  # type: ignore[no-redef,assignment]
-            QMainWindow as m,
-        )
-    return m
+        from PyQt5.QtWidgets import QMainWindow
+    return QMainWindow
 
 
 _core = _import_qt_core()

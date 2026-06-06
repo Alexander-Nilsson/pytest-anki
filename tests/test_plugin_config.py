@@ -1,6 +1,6 @@
 """Tests for plugin configuration: QT_API env var and forking options."""
 
-from _pytest.config.argparsing import Parser
+import pytest
 
 from pytest_anki._plugin.compat import _resolve_qt_api_from_env
 
@@ -46,7 +46,7 @@ def test_resolve_qt_api_empty(monkeypatch):
 
 
 def test_pytest_addoption_registers_anki_no_fork():
-    parser = Parser()
+    parser = pytest.Parser()
     from pytest_anki.plugin import pytest_addoption
 
     pytest_addoption(parser)
@@ -55,7 +55,7 @@ def test_pytest_addoption_registers_anki_no_fork():
 
 
 def test_pytest_addoption_registers_anki_force_fork_ini():
-    parser = Parser()
+    parser = pytest.Parser()
     from pytest_anki.plugin import pytest_addoption
 
     pytest_addoption(parser)
