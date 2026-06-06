@@ -2,15 +2,14 @@
 
 ## Project State
 
-This repo is **pytest-anki**, a pytest plugin for testing Anki add-ons. The `v2` branch is a
-work-in-progress rewrite of the plugin (PR #32 on the upstream repo). The `main` branch is
-the last stable release (1.0.0b7 on PyPI).
+This repo is **pytest-anki**, a pytest plugin for testing Anki add-ons. The `main` branch contains
+the v2 rewrite (2.0.0b2+, unreleased). The upstream `main` carries the last stable release (1.0.0b7 on PyPI).
 
 ## Discovery Log
 
 ### Package Manager
 
-The v2 branch uses **uv** (`[tool.uv]` in pyproject.toml, `uv.lock` existing).
+The project uses **uv** (`[tool.uv]` in pyproject.toml, `uv.lock` existing).
 Pre-commit hooks are configured in `.pre-commit-config.yaml` (ruff + mypy, matching CI).
 Built with hatchling.
 
@@ -56,6 +55,8 @@ Tests use pytest (self-testing plugin). No tox, no nox. CI runs on push/PR via
 - [x] Make auto-forking opt-out via `--anki-no-fork` flag or `anki_force_fork = false` ini option.
 - [x] Add nightly CI schedule (`cron: "0 3 * * *"`).
 - [x] Annotate 4 pre-existing type errors with specific `# type: ignore[<code>]` + explanations.
+- [x] Fix all 4 pre-existing type errors (commit `17826e2`).
+- [x] Add Python 3.14 to CI matrix.
 
 ## Open Decisions / Unresolved Questions
 
@@ -66,8 +67,8 @@ Tests use pytest (self-testing plugin). No tox, no nox. CI runs on push/PR via
 3. **pyproject.toml** still has `qt_api = "pyqt6"` under `[tool.pytest.ini_options]` — this
    is the pytest-qt setting, not our compat layer. Kept as sensible default for Qt6-first
    environments.
-4. **Pre-existing type errors** — 4 mypy (3 in compat.py no-redef/assignment, 1 in
-   launch.py `ProfileManager` arg-type), 2 pyright (test_plugin_config.py Parser
-   attribute access). All annotated with `# type: ignore[<code>]` or excluded.
+4. **Pre-existing type errors** — All 4 pre-existing type errors (3 mypy in compat.py, 1 mypy in
+   launch.py, 2 pyright in test_plugin_config.py) were fixed in commit `17826e2`. MyPy and PyRight
+   now pass cleanly (0 issues across 21 source files).
 5. **Test suite** cannot run locally — Qt6 WebEngine requires `libxml2.so.2` ABI unavailable on
    this system. Full validation requires CI (Ubuntu 24.04 with `tlambert03/setup-qt-libs@v1`).
