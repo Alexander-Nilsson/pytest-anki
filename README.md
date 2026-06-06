@@ -106,12 +106,13 @@ pip install pytest-anki[qt5]
 
 ---
 
-### What's the difference between `qt6-system` and `qt6-pypi`?
+### What's the difference between the Qt6 extras?
 
 | Extra | Installs | Best for |
 |---|---|---|
-| `qt6-system` | `PyQt6` + `PyQt6-WebEngine` (bindings only) | Systems with Qt6 + WebEngine installed via native packages |
-| `qt6-pypi` | `PyQt6` + `PyQt6-WebEngine` + `PyQt6-Qt6` + `PyQt6-WebEngine-Qt6` (bundled runtimes) | Ubuntu / Debian where PyPI wheels work natively |
+| `qt6` | `PyQt6` + `PyQt6-WebEngine` (bindings only) | Default — use if unsure |
+| `qt6-system` | Same as `qt6` (alias) | Systems with Qt6 + WebEngine installed via native packages |
+| `qt6-pypi` | + `PyQt6-Qt6` + `PyQt6-WebEngine-Qt6` (bundled runtimes) | Ubuntu / Debian where PyPI wheels work natively |
 
 ### Optional extras
 
@@ -119,6 +120,21 @@ pip install pytest-anki[qt5]
 |---|---|
 | `selenium` / `web` | Web debugging via ChromeDriver |
 | `recommended-plugins` | `pytest-xvfb`, `pytest-xdist` (with native forking) |
+
+### Qt binding selection
+
+`pytest-anki` auto-detects your installed Qt bindings at import time (PyQt6 preferred over PyQt5). To override, set the `QT_API` environment variable:
+
+| `QT_API` value | Binding selected |
+|---|---|
+| `pyqt6` or `qt6` | PyQt6 |
+| `pyqt5` or `qt5` | PyQt5 |
+
+```bash
+QT_API=pyqt5 pytest tests/
+```
+
+This is useful when both PyQt5 and PyQt6 are installed, or when you want to test against a specific binding in CI.
 
 
 ## Usage

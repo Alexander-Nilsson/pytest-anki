@@ -105,6 +105,7 @@ selenium = ["selenium>=3.141.0"]
 web = ["selenium>=3.141.0"]
 
 qt5 = ["PyQt5>=5.15.2", "PyQt5-Qt5>=5.15.2", "PyQtWebEngine>=5.15.5", "PyQt5-stubs>=5.15.2"]
+qt6 = ["PyQt6>=6.3.1", "PyQt6-WebEngine>=6.3.1"]
 qt6-system = ["PyQt6>=6.3.1", "PyQt6-WebEngine>=6.3.1"]
 qt6-pypi = ["PyQt6>=6.3.1", "PyQt6-Qt6>=6.3.1", "PyQt6-WebEngine>=6.3.1", "PyQt6-WebEngine-Qt6>=6.3.1"]
 
@@ -126,6 +127,7 @@ qt5 = [
     "PyQtWebEngine>=5.15.5",
     "PyQt5-stubs>=5.15.2",
 ]
+qt6 = ["PyQt6>=6.3.1", "PyQt6-WebEngine>=6.3.1"]
 qt6-system = ["PyQt6>=6.3.1", "PyQt6-WebEngine>=6.3.1"]
 qt6-pypi = ["PyQt6>=6.3.1", "PyQt6-Qt6>=6.3.1", "PyQt6-WebEngine>=6.3.1", "PyQt6-WebEngine-Qt6>=6.3.1"]
 
