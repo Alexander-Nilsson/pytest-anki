@@ -23,7 +23,9 @@ The goal is to provide add-on authors with a one-stop-shop for their functional 
 
 ## Platform Support
 
-`pytest-anki` has only been confirmed to work on Linux so far. The full test suite requires a Qt6 WebEngine ABI compatible with Ubuntu 24.04 (as used in CI). On other distributions, use system Qt packages and rely on CI for test validation.
+`pytest-anki` is tested on **Linux (Ubuntu 24.04)** and **macOS** in CI. Linux runs the full matrix of Qt5/Qt6 and Anki versions; macOS runs a single latest-config entry.
+
+The full test suite requires a Qt6 WebEngine ABI compatible with Ubuntu 24.04 (as used in CI). On other Linux distributions, use system Qt packages (`qt6-system` extra) and rely on CI for test validation. On macOS, PyPI Qt6 wheels work natively.
 
 
 ## Installation

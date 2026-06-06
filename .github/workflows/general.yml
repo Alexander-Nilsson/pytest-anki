@@ -115,6 +115,54 @@ jobs:
         run: |
           make test
 
+  test-macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - anki: anki-2509
+            python: "3.13"
+            qt: qt6-2509
+            qt-api: pyqt6
+            chrome: 122.0.6261.171
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up chromedriver
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome_version=${{ matrix.chrome }}
+          milestone="${chrome_version%%.*}"
+          cft_json_url="https://googlechromelabs.github.io/chrome-for-testing/latest-versions-per-milestone-with-downloads.json"
+          driver_version=$(curl --location --fail --retry 3 --retry-delay 2 "$cft_json_url" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['milestones']['${milestone}']['version'])")
+          download_url="https://storage.googleapis.com/chrome-for-testing-public/${driver_version}/mac-x64/chromedriver-mac-x64.zip"
+          curl -L "$download_url" -o chromedriver-mac-x64.zip
+          unzip -o -q chromedriver-mac-x64.zip
+          sudo mv chromedriver-mac-x64/chromedriver /usr/local/bin/chromedriver
+          rm -rf chromedriver-mac-x64.zip chromedriver-mac-x64
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install project
+        shell: bash
+        run: |
+          pip install uv
+          uv sync --no-default-groups --group dev --extra ${{ matrix.anki }} --extra ${{ matrix.qt }}
+
+      - name: Run tests
+        shell: bash
+        env:
+          PYTEST_ADDOPTS: -o qt_api=${{ matrix['qt-api'] }} -p no:xvfb
+        run: |
+          make test
+
   lint:
     runs-on: ubuntu-24.04
     steps:
