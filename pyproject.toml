@@ -112,8 +112,8 @@ qt6-pypi = ["PyQt6>=6.3.1", "PyQt6-Qt6>=6.3.1", "PyQt6-WebEngine>=6.3.1", "PyQt6
 [dependency-groups]
 dev = [
     "ruff~=0.11.0",
-    "pylint~=3.3",
     "mypy~=1.15",
+    "pre-commit>=4.0",
     "requests~=2.26",
     "types-requests~=2.25",
     "pyright>=1.1.398",

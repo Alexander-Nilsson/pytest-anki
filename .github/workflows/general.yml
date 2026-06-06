@@ -163,6 +163,19 @@ jobs:
         run: |
           make test
 
+  pre-commit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.13"
+          python-version: "3.9"
+      - name: Install project
+        run: uv sync --only-group dev
+      - name: Run pre-commit hooks
+        run: uv run pre-commit run --all-files --show-diff-on-failure
+
   lint:
     runs-on: ubuntu-24.04
     steps:

@@ -23,6 +23,10 @@ lint:
 	python -m ruff check $(MONITORED_FOLDERS)
 	python -m ruff format --check $(MONITORED_FOLDERS)
 
+# Run pre-commit hooks
+pre-commit:
+	pre-commit run --all-files --show-diff-on-failure
+
 # Run code formatters
 format:
 	python -m ruff check --fix $(MONITORED_FOLDERS)
