@@ -21,13 +21,7 @@ The goal is to provide add-on authors with a one-stop-shop for their functional 
 
 [![CI](https://github.com/Alexander-Nilsson/pytest-anki/actions/workflows/general.yml/badge.svg)](https://github.com/Alexander-Nilsson/pytest-anki/actions/workflows/general.yml)
 
-## Disclaimer
-
-### Project State
-
-**v2.0.0b2**: This is a pre-release of the v2 rewrite. The API is stable but may see minor changes before the final release. Check the [CHANGELOG](./CHANGELOG.md) for what's new.
-
-### Platform Support
+## Platform Support
 
 `pytest-anki` has only been confirmed to work on Linux so far. The full test suite requires a Qt6 WebEngine ABI compatible with Ubuntu 24.04 (as used in CI). On other distributions, use system Qt packages and rely on CI for test validation.
 

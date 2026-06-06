@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0b2 (unreleased)
+## 2.0.0 (2025-06-06)
 
 ### Features
 - Add `--anki-no-fork` CLI flag and `anki_force_fork` ini option to opt out of automatic test forking.
