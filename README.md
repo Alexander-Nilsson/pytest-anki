@@ -21,6 +21,46 @@ The goal is to provide add-on authors with a one-stop-shop for their functional 
 
 [![CI](https://github.com/Alexander-Nilsson/pytest-anki/actions/workflows/general.yml/badge.svg)](https://github.com/Alexander-Nilsson/pytest-anki/actions/workflows/general.yml)
 
+## Quickstart
+
+Install pytest-anki with your Qt backend and Anki version:
+
+```bash
+pip install pytest-anki[qt6,anki-2509]
+```
+
+Add a minimal test file:
+
+```python
+# test_my_addon.py
+from pytest_anki import AnkiSession
+
+
+def test_addon_loads(anki_session: AnkiSession):
+    anki_session.load_addon("my_addon")
+    assert hasattr(anki_session.mw, "my_addon")
+
+
+def test_with_profile(anki_session: AnkiSession):
+    with anki_session.profile_loaded():
+        assert anki_session.collection is not None
+```
+
+Run with pytest:
+
+```bash
+pytest test_my_addon.py
+```
+
+If you use `pyproject.toml`, add the plugin config:
+
+```toml
+[tool.pytest.ini_options]
+qt_api = "pyqt6"
+```
+
+See the [Usage](#usage) section below for the full API reference.
+
 ## Platform Support
 
 `pytest-anki` is tested on **Linux (Ubuntu 24.04)** and **macOS** in CI. Linux runs the full matrix of Qt5/Qt6 and Anki versions; macOS runs a single latest-config entry.
@@ -32,7 +72,7 @@ The full test suite requires a Qt6 WebEngine ABI compatible with Ubuntu 24.04 (a
 
 ### Requirements
 
-- Python 3.9+ (3.13 supported)
+- Python 3.9+ (3.13 and 3.14 supported in CI)
 - Anki 2.1.54+ (installed automatically)
 - Qt5 or Qt6 (auto-detected at runtime; see below)
 
@@ -274,6 +314,36 @@ def test_web_view(anki_session: AnkiSession):
         )
 ```
 
+## Migration Guide (v1 → v2)
+
+v2.0.0 is a major rewrite. Here's what changed:
+
+### Breaking changes
+
+| v1 | v2 |
+|---|---|
+| `pytest-anki[qt5]` / `pytest-anki[qt6]` | `pytest-anki[qt5]` / `pytest-anki[qt6]` / `pytest-anki[qt6-system]` / `pytest-anki[qt6-pypi]` |
+| Poetry-based build | uv + hatchling |
+| Python 3.7+ | Python 3.9+ |
+| `pytest-forked` | xdist native forking (`pytest-xdist>=3.0`) |
+| Manual forking required | Auto-forked by default (opt-out via `--anki-no-fork`) |
+| PyQt5 only | PyQt6 auto-detected, PyQt5 fallback |
+| Selenium always installed | Selenium optional (`[selenium]` extra) |
+
+### What to update
+
+1. **Switch to uv** (or keep pip — `pip install pytest-anki[...]` still works).
+2. **Specify an Anki version extra**: `pip install pytest-anki[anki-2509,qt6]`.
+3. **Remove `pytest-forked`** from your dependencies — xdist handles forking.
+4. **If you used `@pytest.mark.forked` explicitly**, it's now automatic; use `--anki-no-fork` to disable.
+5. **If you relied on `pytest-anki` pulling in selenium**, add `selenium` extra explicitly.
+
+### What stayed the same
+
+- The `anki_session` fixture API is backward-compatible.
+- `AnkiSession`, `AnkiStateUpdate`, `AnkiWebViewType` are at `pytest_anki`.
+- Indirect parametrization via `@pytest.mark.parametrize("anki_session", [...], indirect=True)` works as before.
+
 ## Additional Notes
 
 ### When to use pytest-anki
@@ -310,27 +380,59 @@ Disabling forking can speed up test suites that share a single Anki process, but
 
 ### Troubleshooting
 
-#### Local testing limitations (Qt6 ABI)
+#### Qt6 ABI incompatibility
 
-`pytest-anki`'s full test suite requires launching a real Anki process with Qt/WebEngine. PyPI wheels for `PyQt6-WebEngine` ship Qt6 libraries compiled against Ubuntu's ABI, which cannot run on distros like Arch Linux or Fedora. On those systems, use system packages:
+PyPI wheels for `PyQt6-WebEngine` ship Qt6 libraries compiled against Ubuntu's ABI. On Arch, Fedora, or other non-Ubuntu distros:
 
 ```bash
-# Arch
-sudo pacman -S python-pyqt6-webengine
-# Fedora
-sudo dnf install python3-pyqt6-webengine
+# Use system Qt packages
+sudo pacman -S python-pyqt6-webengine   # Arch
+sudo dnf install python3-pyqt6-webengine # Fedora
+pip install pytest-anki[qt6-system]
 ```
 
-If you cannot run the full suite locally, CI (GitHub Actions) is the authoritative validation — it runs the full matrix on Ubuntu 24.04. You can also run lint and type checks locally without Qt:
+If you cannot run the full suite locally, CI (GitHub Actions) is the authoritative validation. You can always run lint and type checks:
 
 ```bash
 make lint
 make check
 ```
 
-#### pytest hanging when using xvfb
+#### pytest hangs when using xvfb
 
-Especially if you run your tests headlessly with `xvfb`, you might run into cases where pytest will sometimes appear to hang. Oftentimes this is due to blocking non-dismissable prompts that your add-on code might invoke in some scenarios. If you suspect that might be the case, my advice would be to temporarily bypass `xvfb` locally via `pytest --no-xvfb` to show the UI and manually debug the issue.
+Blocking non-dismissable prompts from your add-on code can cause hangs. Bypass xvfb temporarily:
+
+```bash
+pytest --no-xvfb tests/
+```
+
+#### ImportError: No Qt bindings found
+
+Install a Qt backend:
+
+```bash
+pip install pytest-anki[qt6]
+# or for PyQt5:
+pip install pytest-anki[qt5]
+```
+
+If you have Qt installed but the wrong one is selected, set `QT_API`:
+
+```bash
+QT_API=pyqt5 pytest tests/
+```
+
+#### Tests fail with "Failed to import add-on"
+
+Ensure your add-on is in Anki's `addons21` directory, or use `unpacked_addons` to point to a source folder during session setup:
+
+```python
+@pytest.mark.parametrize("anki_session", [dict(
+    unpacked_addons=[("my_addon", "/path/to/source")],
+)], indirect=True)
+def test_with_addon(anki_session: AnkiSession):
+    anki_session.load_addon("my_addon")
+```
 
 ## Contributing
 
