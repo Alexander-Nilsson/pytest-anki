@@ -337,4 +337,4 @@ def anki_running(
     # test_nextIvl will fail on some systems if the locales are not restored
     import locale
 
-    locale.setlocale(locale.LC_ALL, locale.getdefaultlocale())  # type: ignore
+    locale.setlocale(locale.LC_ALL, "")
