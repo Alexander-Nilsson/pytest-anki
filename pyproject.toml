@@ -1,5 +1,5 @@
 [project]
-name = "pytest-anki"
+name = "pytest-anki2"
 version = "2.0.0"
 description = "A pytest plugin for testing Anki add-ons"
 authors = [
@@ -29,12 +29,13 @@ classifiers = [
 dependencies = [
     "pytest>=7.0",
     "pytest-qt~=4.4.0",
-    "packaging~=21.3",
+    "packaging>=21.3",
 ]
 
 [project.urls]
 Homepage = "https://github.com/Alexander-Nilsson/pytest-anki"
 Repository = "https://github.com/Alexander-Nilsson/pytest-anki"
+Download = "https://pypi.org/project/pytest-anki2/"
 
 [project.entry-points.pytest11]
 anki = "pytest_anki.plugin"
@@ -119,6 +120,7 @@ dev = [
     "pyright>=1.1.398",
     "pytest-anki[recommended-plugins]",
     "protobuf>=6.33,<7",
+    "pytest-cov>=4.0",
 ]
 anki = ["aqt>=2.1.54", "anki>=2.1.54"]
 qt5 = [
@@ -205,3 +207,8 @@ section-order = [
 ]
 combine-as-imports = true
 split-on-trailing-comma = true
+
+[tool.coverage.run]
+source = ["pytest_anki"]
+branch = true
+omit = ["tests/*"]

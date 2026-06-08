@@ -16,13 +16,13 @@ assignees: ''
 
 *Please replace the space inside the brackets with an **x** if the following items apply:*
 
- - [ ] I've verified that I use the latest version of `pytest-anki`
+ - [ ] I've verified that I use the latest version of `pytest-anki2`
  - [ ] I've checked if anyone else reported this problem before by looking through the issue reports. I also checked to see if there is a section about known issues in the add-on description, documentation, or README.
  
 
 #### Information about your set-up
 
-Please run `pip freeze | grep pytest-anki` and paste the output below:
+Please run `pip freeze | grep pytest-anki2` and paste the output below:
 
 ```
 

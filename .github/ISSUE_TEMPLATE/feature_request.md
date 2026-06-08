@@ -11,7 +11,7 @@ assignees: ''
 
 *Please replace the space inside the brackets with an **x** if the following items apply:*
 
- - [ ] I've verified that I use the latest version of `pytest-anki`
+ - [ ] I've verified that I use the latest version of `pytest-anki2`
  - [ ] I've checked if anyone else suggested this feature before by looking through the issue reports.
 
 #### Problem case

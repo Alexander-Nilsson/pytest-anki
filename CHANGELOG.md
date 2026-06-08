@@ -2,6 +2,14 @@
 
 ## 2.0.0 (2025-06-06)
 
+### Infrastructure
+- Renamed PyPI package from `pytest-anki` to `pytest-anki2` (name was taken)
+- Added GitHub Actions release workflow (publish to PyPI on tag via trusted publishing)
+- Bumped `packaging` constraint from `~=21.3` to `>=21.3` to avoid stale pin
+- Added `__all__` to `plugin.py` for clean public API surface
+- Added coverage (`pytest-cov`) reporting to CI
+- Added minimal API reference docs under `docs/`
+
 ### Features
 - Add `--anki-no-fork` CLI flag and `anki_force_fork` ini option to opt out of automatic test forking.
 - Add `QT_API` environment variable override (`qt5`/`qt6`/`pyqt5`/`pyqt6`) for explicit Qt binding selection.

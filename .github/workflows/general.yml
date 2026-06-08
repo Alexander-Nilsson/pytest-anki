@@ -204,3 +204,26 @@ jobs:
         shell: bash
         run: |
           make check
+
+  coverage:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up test environment
+        uses: ./.github/actions/setup
+        with:
+          python: 3.12.9
+          chrome: 122.0.6261.171
+          anki: anki-2509
+          qt: qt6-2509
+      - name: Run tests with coverage
+        shell: bash
+        env:
+          PYTEST_ADDOPTS: -o qt_api=pyqt6
+        run: |
+          python -m pytest --cov=pytest_anki --cov-report=xml --cov-report=term -n4 tests/
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml

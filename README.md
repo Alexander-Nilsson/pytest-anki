@@ -26,7 +26,7 @@ The goal is to provide add-on authors with a one-stop-shop for their functional 
 Install pytest-anki with your Qt backend and Anki version:
 
 ```bash
-pip install pytest-anki[qt6,anki-2509]
+pip install pytest-anki2[qt6,anki-2509]
 ```
 
 Add a minimal test file:
@@ -87,19 +87,19 @@ The full test suite requires a Qt6 WebEngine ABI compatible with Ubuntu 24.04 (a
 PyPI wheels for `PyQt6`, `PyQt6-WebEngine`, and their bundled Qt6 runtimes are built against Ubuntu's ABI and work out of the box:
 
 ```bash
-pip install pytest-anki[qt6-pypi]
+pip install pytest-anki2[qt6-pypi]
 ```
 
 With uv:
 
 ```bash
-uv add --dev pytest-anki[qt6-pypi]
+uv add --dev pytest-anki2[qt6-pypi]
 ```
 
 Install optional selenium support for web debugging:
 
 ```bash
-pip install pytest-anki[qt6-pypi,selenium]
+pip install pytest-anki2[qt6-pypi,selenium]
 ```
 
 ---
@@ -110,14 +110,14 @@ Use your distro's pre-compiled PyQt6 packages — they link against your system'
 
 ```bash
 sudo pacman -S python-pyqt6-webengine
-pip install pytest-anki[qt6-system]
+pip install pytest-anki2[qt6-system]
 ```
 
 With uv:
 
 ```bash
 sudo pacman -S python-pyqt6-webengine
-uv add --dev pytest-anki[qt6-system]
+uv add --dev pytest-anki2[qt6-system]
 ```
 
 ---
@@ -126,14 +126,14 @@ uv add --dev pytest-anki[qt6-system]
 
 ```bash
 sudo dnf install python3-pyqt6-webengine
-pip install pytest-anki[qt6-system]
+pip install pytest-anki2[qt6-system]
 ```
 
 With uv:
 
 ```bash
 sudo dnf install python3-pyqt6-webengine
-uv add --dev pytest-anki[qt6-system]
+uv add --dev pytest-anki2[qt6-system]
 ```
 
 ---
@@ -143,7 +143,7 @@ uv add --dev pytest-anki[qt6-system]
 If your system provides Qt5 + PyQt5:
 
 ```bash
-pip install pytest-anki[qt5]
+pip install pytest-anki2[qt5]
 ```
 
 ---
@@ -322,7 +322,7 @@ v2.0.0 is a major rewrite. Here's what changed:
 
 | v1 | v2 |
 |---|---|
-| `pytest-anki[qt5]` / `pytest-anki[qt6]` | `pytest-anki[qt5]` / `pytest-anki[qt6]` / `pytest-anki[qt6-system]` / `pytest-anki[qt6-pypi]` |
+| `pytest-anki2[qt5]` / `pytest-anki2[qt6]` | `pytest-anki2[qt5]` / `pytest-anki2[qt6]` / `pytest-anki2[qt6-system]` / `pytest-anki2[qt6-pypi]` |
 | Poetry-based build | uv + hatchling |
 | Python 3.7+ | Python 3.9+ |
 | `pytest-forked` | xdist native forking (`pytest-xdist>=3.0`) |
@@ -332,8 +332,8 @@ v2.0.0 is a major rewrite. Here's what changed:
 
 ### What to update
 
-1. **Switch to uv** (or keep pip — `pip install pytest-anki[...]` still works).
-2. **Specify an Anki version extra**: `pip install pytest-anki[anki-2509,qt6]`.
+1. **Switch to uv** (or keep pip — `pip install pytest-anki2[...]` still works).
+2. **Specify an Anki version extra**: `pip install pytest-anki2[anki-2509,qt6]`.
 3. **Remove `pytest-forked`** from your dependencies — xdist handles forking.
 4. **If you used `@pytest.mark.forked` explicitly**, it's now automatic; use `--anki-no-fork` to disable.
 5. **If you relied on `pytest-anki` pulling in selenium**, add `selenium` extra explicitly.
@@ -388,7 +388,7 @@ PyPI wheels for `PyQt6-WebEngine` ship Qt6 libraries compiled against Ubuntu's A
 # Use system Qt packages
 sudo pacman -S python-pyqt6-webengine   # Arch
 sudo dnf install python3-pyqt6-webengine # Fedora
-pip install pytest-anki[qt6-system]
+pip install pytest-anki2[qt6-system]
 ```
 
 If you cannot run the full suite locally, CI (GitHub Actions) is the authoritative validation. You can always run lint and type checks:
@@ -411,9 +411,9 @@ pytest --no-xvfb tests/
 Install a Qt backend:
 
 ```bash
-pip install pytest-anki[qt6]
+pip install pytest-anki2[qt6]
 # or for PyQt5:
-pip install pytest-anki[qt5]
+pip install pytest-anki2[qt5]
 ```
 
 If you have Qt installed but the wrong one is selected, set `QT_API`:

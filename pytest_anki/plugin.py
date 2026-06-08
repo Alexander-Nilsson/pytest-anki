@@ -28,6 +28,8 @@
 #
 # Any modifications to this file must keep this entire header intact.
 
+__all__ = ["anki_session"]
+
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
 import pytest
