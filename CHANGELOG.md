@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.1 (2026-06-08)
+
+### Infrastructure
+- Migrate type checker from mypy/pyright to Astral's `ty` ([#74873cd](https://github.com/Alexander-Nilsson/pytest-anki/commit/74873cd))
+- Add `ty: ignore` annotations alongside existing `type: ignore` for Anki API incompatibilities
+- Resolve `ty` type errors for `pytest.skip`/`pytest.fail` (Protocol wrapper obscures keyword params)
+- Fix CI failures: E402, typecheck, macOS runner, uv cache, Python 3.9 venv activation
+
 ## 2.0.0 (2025-06-06)
 
 ### Infrastructure
