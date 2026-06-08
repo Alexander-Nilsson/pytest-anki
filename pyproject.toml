@@ -118,7 +118,7 @@ dev = [
     "requests~=2.26",
     "types-requests~=2.25",
     "pyright>=1.1.398",
-    "pytest-anki[recommended-plugins]",
+    "pytest-anki2[recommended-plugins]",
     "protobuf>=6.33,<7",
     "pytest-cov>=4.0",
 ]
