@@ -128,7 +128,7 @@ def _check_result(result):
     if status == "passed":
         return
     elif status == "skipped":
-        pytest.skip(reason=result.get("reason", "Test skipped internally"))
+        pytest.skip(result.get("reason", "Test skipped internally"))
     elif status == "failed":
         message = result.get("message", "Test failed")
         stderr = result.get("stderr")
@@ -166,7 +166,7 @@ def test_can_supply_timeout(anki_session: AnkiSession):
             task=mock_task, timeout=timeout_duration * 1000
         )
     except AnkiSessionError:
-        pytest.fail(reason="Call unexpectedly timed out")
+        pytest.fail("Call unexpectedly timed out")
 
     wait_time = time.time() - start_time
 
