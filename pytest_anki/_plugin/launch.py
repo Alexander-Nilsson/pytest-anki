@@ -78,7 +78,7 @@ def temporary_user(anki_base_dir: str, name: str, lang: str) -> Iterator[str]:
     else:
         base_dir_path = anki_base_dir
 
-    pm = ProfileManager(base=base_dir_path)
+    pm = ProfileManager(base=base_dir_path)  # ty: ignore[invalid-argument-type]
 
     pm.setupMeta()
     pm.setLang(lang)

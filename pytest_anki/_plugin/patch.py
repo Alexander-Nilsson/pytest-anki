@@ -133,7 +133,7 @@ def custom_init_factory(post_ui_setup_callback: PostUISetupCallbackType):
         try:  # 2.1.28+
             main_window.taskman = TaskManager(main_window)
         except TypeError:
-            main_window.taskman = TaskManager()
+            main_window.taskman = TaskManager()  # ty: ignore[missing-argument]
 
         main_window.media_syncer = MediaSyncer(main_window)
 
@@ -191,12 +191,12 @@ def patch_anki(
     AnkiQt.__init__ = patched_ankiqt_init  # type: ignore[assignment]
     AnkiApp.KEY = "anki" + checksum(str(uuid.uuid4()))
     setattr(AnkiQt, setup_auto_update_attribute, Mock())
-    AnkiQt.maybe_check_for_addon_updates = Mock()  # type: ignore[assignment]
-    errors.ErrorHandler = Mock()  # type: ignore[misc]
+    AnkiQt.maybe_check_for_addon_updates = Mock()  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+    errors.ErrorHandler = Mock()  # type: ignore[misc]  # ty: ignore[invalid-assignment]
 
     yield AnkiApp.KEY
 
-    AnkiQt.__init__ = old_init  # type: ignore[assignment]
+    AnkiQt.__init__ = old_init  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
     AnkiApp.KEY = old_key  # type: ignore[assignment]
     setattr(AnkiQt, setup_auto_update_attribute, old_setup_auto_update)
     AnkiQt.maybe_check_for_addon_updates = (  # type: ignore[assignment]
@@ -206,4 +206,4 @@ def patch_anki(
 
 
 def set_qt_message_handler_installer(message_handler_installer: Callable):
-    aqt.qInstallMessageHandler = message_handler_installer  # type: ignore[assignment]
+    aqt.qInstallMessageHandler = message_handler_installer  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
