@@ -13,10 +13,9 @@ install:
 test:
 	python -m pytest $(TEST_FLAGS) tests/
 
-# Run type checkers
+# Run type checker
 check:
-	python -m mypy $(MONITORED_FOLDERS)
-	python -m pyright $(MONITORED_FOLDERS)
+	uv run ty check
 
 # Run code linters
 lint:

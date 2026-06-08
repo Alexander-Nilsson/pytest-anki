@@ -193,17 +193,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Set up test environment
-        uses: ./.github/actions/setup
+      - uses: astral-sh/setup-uv@v5
         with:
-          python: 3.9.15
-          chrome: 112.0.5615.213
-          anki: anki-2411
-          qt: qt6-2411
-      - name: Run type checkers
-        shell: bash
-        run: |
-          make check
+          version: "0.6.13"
+          python-version: "3.9"
+      - name: Install project
+        run: uv sync --only-group dev
+      - name: Run type checker
+        run: make check
 
   coverage:
     runs-on: ubuntu-24.04

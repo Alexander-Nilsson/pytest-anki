@@ -113,11 +113,9 @@ qt6-pypi = ["PyQt6>=6.3.1", "PyQt6-Qt6>=6.3.1", "PyQt6-WebEngine>=6.3.1", "PyQt6
 [dependency-groups]
 dev = [
     "ruff~=0.11.0",
-    "mypy~=1.15",
+    "ty>=0.0.44",
     "pre-commit>=4.0",
     "requests~=2.26",
-    "types-requests~=2.25",
-    "pyright>=1.1.398",
     "pytest-anki2[recommended-plugins]",
     "protobuf>=6.33,<7",
     "pytest-cov>=4.0",
@@ -177,16 +175,10 @@ build-backend = "hatchling.build"
 [tool.pytest.ini_options]
 qt_api = "pyqt6"
 
-[tool.mypy]
-show_error_codes = true
-ignore_missing_imports = true
-follow_imports = "silent"
-show_column_numbers = true
-exclude = "tests/samples/"
+[tool.ty.analysis]
+allowed-unresolved-imports = ["**"]
 
-[tool.pyright]
-reportPrivateImportUsage = "none"
-reportMissingImports = false
+[tool.ty.src]
 exclude = ["tests/samples/"]
 
 [tool.ruff]

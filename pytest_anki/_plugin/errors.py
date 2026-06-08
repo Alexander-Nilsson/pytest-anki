@@ -1,5 +1,6 @@
 # pytest-anki
 #
+# Copyright (C)  2026 Alexander Nilsson
 # Copyright (C)  2019-2025 Aristotelis P. <https://glutanimate.com/>
 #                and contributors (see CONTRIBUTORS file)
 #
