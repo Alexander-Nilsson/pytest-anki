@@ -162,11 +162,8 @@ conflicts = [
     ],
 ]
 
-[tool.hatch.build.targets.sdist]
-include = ["pytest_anki/py.typed"]
-
 [tool.hatch.build.targets.wheel]
-include = ["pytest_anki/py.typed"]
+packages = ["pytest_anki"]
 
 [build-system]
 requires = ["hatchling"]
