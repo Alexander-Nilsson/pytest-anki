@@ -137,6 +137,7 @@ jobs:
         with:
           version: "0.6.13"
           python-version: "3.9"
+          enable-cache: false
       - name: Install project
         run: uv sync --only-group dev
       - name: Run linter
@@ -150,6 +151,7 @@ jobs:
         with:
           version: "0.6.13"
           python-version: "3.9"
+          enable-cache: false
       - name: Install project
         run: uv sync --only-group dev
       - name: Run type checker
