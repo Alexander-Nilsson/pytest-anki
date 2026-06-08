@@ -166,7 +166,7 @@ def test_can_supply_timeout(anki_session: AnkiSession):
             task=mock_task, timeout=timeout_duration * 1000
         )
     except AnkiSessionError:
-        pytest.fail(msg="Call unexpectedly timed out")
+        pytest.fail(reason="Call unexpectedly timed out")
 
     wait_time = time.time() - start_time
 
