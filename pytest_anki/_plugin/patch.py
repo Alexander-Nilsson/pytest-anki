@@ -133,7 +133,7 @@ def custom_init_factory(post_ui_setup_callback: PostUISetupCallbackType):
         try:  # 2.1.28+
             main_window.taskman = TaskManager(main_window)
         except TypeError:
-            main_window.taskman = TaskManager()  # type: ignore
+            main_window.taskman = TaskManager()
 
         main_window.media_syncer = MediaSyncer(main_window)
 
@@ -188,7 +188,7 @@ def patch_anki(
         post_ui_setup_callback=post_ui_setup_callback
     )
 
-    AnkiQt.__init__ = patched_ankiqt_init  # type: ignore
+    AnkiQt.__init__ = patched_ankiqt_init  # type: ignore[assignment]
     AnkiApp.KEY = "anki" + checksum(str(uuid.uuid4()))
     setattr(AnkiQt, setup_auto_update_attribute, Mock())
     AnkiQt.maybe_check_for_addon_updates = Mock()  # type: ignore[assignment]

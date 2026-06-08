@@ -305,6 +305,11 @@ def anki_running(
                         with anki_session.profile_loaded():
                             yield anki_session
 
+                    # Process pending Qt events (e.g. WebEngine page deletion)
+                    # before cleanup to avoid segfaults
+                    if aqt.mw and aqt.mw.app:
+                        aqt.mw.app.processEvents()
+
                     # Undo monkey-patch if applied
                     set_qt_message_handler_installer(qInstallMessageHandler)
 

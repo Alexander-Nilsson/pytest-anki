@@ -47,8 +47,6 @@ from typing import (
     Union,
 )
 
-logger = logging.getLogger(__name__)
-
 from .addons import ConfigPaths, create_addon_config
 from .anki import (
     AnkiStateUpdate,
@@ -60,6 +58,8 @@ from .compat import QThreadPool, QTimer, QWebEngineProfile
 from .errors import AnkiSessionError
 from .qt import SignallingWorker
 from .types import PathLike
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from anki.collection import Collection
