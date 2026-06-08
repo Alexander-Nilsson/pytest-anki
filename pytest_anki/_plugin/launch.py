@@ -35,13 +35,10 @@ import logging
 import os
 import shutil
 import tempfile
-import warnings
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple
 from unittest import mock
-
-logger = logging.getLogger(__name__)
 
 from packaging.version import Version
 
@@ -62,6 +59,8 @@ from .qt import QtMessageMatcher
 from .session import AnkiSession
 from .types import PathLike
 from .util import find_free_port
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from pytestqt.qtbot import QtBot

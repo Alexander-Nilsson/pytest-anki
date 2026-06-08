@@ -161,7 +161,7 @@ jobs:
         env:
           PYTEST_ADDOPTS: -o qt_api=${{ matrix['qt-api'] }} -p no:xvfb
         run: |
-          make test
+          uv run python -m pytest -n4 tests/
 
   pre-commit:
     runs-on: ubuntu-24.04
@@ -171,6 +171,7 @@ jobs:
         with:
           version: "0.6.13"
           python-version: "3.9"
+          enable-cache: false
       - name: Install project
         run: uv sync --only-group dev
       - name: Run pre-commit hooks

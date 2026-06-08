@@ -33,8 +33,6 @@ import time
 from unittest.mock import Mock
 
 import pytest
-from pytestqt.qtbot import TimeoutError
-
 from pytest_anki import AnkiSession, AnkiSessionError, AnkiWebViewType
 from pytest_anki._plugin.subprocess import run_in_subprocess
 
@@ -166,14 +164,14 @@ def test_can_supply_timeout(anki_session: AnkiSession):
         anki_session.run_in_thread_and_wait(
             task=mock_task, timeout=timeout_duration * 1000
         )
-    except TimeoutError:
+    except AnkiSessionError:
         pytest.fail("Call unexpectedly timed out")
 
     wait_time = time.time() - start_time
 
     assert timeout_duration > wait_time >= task_duration
 
-    with pytest.raises(TimeoutError):
+    with pytest.raises(AnkiSessionError):
         anki_session.run_in_thread_and_wait(
             task=mock_task, timeout=(task_duration - 1) * 1000
         )
