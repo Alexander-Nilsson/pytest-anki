@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.2 (2026-06-08)
+
+### Bug Fixes
+- **Fix broken PyPI wheel**: the `include = ["pytest_anki/py.typed"]` hatch build config caused the wheel to contain only the empty `py.typed` marker file, omitting all Python source. The package was completely non-functional on PyPI (`ModuleNotFoundError: pytest_anki.plugin`). Replaced with `packages = ["pytest_anki"]` so hatchling discovers all modules.
+
 ## 2.0.1 (2026-06-08)
 
 ### Infrastructure
