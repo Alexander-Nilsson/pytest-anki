@@ -465,6 +465,7 @@ make format
 *pytest-anki* is
 
 *Copyright © 2026 Alexander Nilsson*
+
 *Copyright © 2019-2025 Aristotelis P. (Glutanimate) and [contributors](./CONTRIBUTORS)*
 
 *Copyright © 2017-2019 [Michal Krassowski](https://github.com/krassowski/anki_testing)*
