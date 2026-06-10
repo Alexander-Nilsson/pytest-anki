@@ -41,14 +41,9 @@ from unittest.mock import Mock
 
 import aqt
 from aqt.main import AnkiQt
-from aqt.mediasync import MediaSyncer
-from aqt.taskman import TaskManager
-
-from .compat import QMainWindow
 
 if TYPE_CHECKING:
     from anki._backend import RustBackend
-    from anki.collection import Collection
     from aqt.profiles import ProfileManager as ProfileManagerType
 
 from .addons import (
@@ -56,16 +51,10 @@ from .addons import (
     install_addon_from_folder,
     install_addon_from_package,
 )
-from .aniki_compat import (
-    create_flag_manager,
-    create_task_manager,
-    finish_ui_setup,
-    get_auto_update_attr,
-)
+from .aniki_compat import get_auto_update_attr
 from .anki import AnkiStateUpdate, update_anki_meta_state
+from .testing import PostUISetupCallbackType, TestAnkiQtInit
 from .types import PathLike
-
-PostUISetupCallbackType = Callable[[AnkiQt], None]
 
 
 def post_ui_setup_callback_factory(
@@ -119,6 +108,13 @@ def post_ui_setup_callback_factory(
 
 
 def custom_init_factory(post_ui_setup_callback: PostUISetupCallbackType):
+    """Return a replacement for ``AnkiQt.__init__`` for test isolation.
+
+    Delegates to ``TestAnkiQtInit`` behind a closure so the rest of
+    ``patch_anki`` doesn't need to change.
+    """
+    init = TestAnkiQtInit(post_ui_setup_callback)
+
     def custom_init(
         main_window: AnkiQt,
         app: aqt.AnkiApp,
@@ -128,27 +124,7 @@ def custom_init_factory(post_ui_setup_callback: PostUISetupCallbackType):
         args: List[Any],
         **kwargs,
     ):
-        import aqt
-
-        QMainWindow.__init__(main_window)  # pyright: ignore[reportArgumentType]
-        main_window.backend = backend
-        main_window.state = "startup"
-        main_window.opts = opts
-        main_window.col: Optional["Collection"] = None  # type: ignore
-
-        main_window.taskman = create_task_manager(main_window)
-        main_window.media_syncer = MediaSyncer(main_window)
-        main_window.flags = create_flag_manager(main_window)
-
-        aqt.mw = main_window
-        main_window.app = app
-        main_window.pm = profileManager
-        main_window.safeMode = False  # disable safe mode, of no use to us
-        main_window.setupUI()
-
-        post_ui_setup_callback(main_window)
-
-        finish_ui_setup(main_window)
+        init.run(main_window, app, profileManager, backend, opts, args)
 
     return custom_init
 
