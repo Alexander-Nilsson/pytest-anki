@@ -19,17 +19,15 @@ check:
 
 # Run code linters
 lint:
-	python -m ruff check $(MONITORED_FOLDERS)
-	python -m ruff format --check $(MONITORED_FOLDERS)
+	uv run ruff check $(MONITORED_FOLDERS)
+	uv run ruff format --check $(MONITORED_FOLDERS)
 
-# Run pre-commit hooks
 pre-commit:
-	pre-commit run --all-files --show-diff-on-failure
+	uv run pre-commit run --all-files --show-diff-on-failure
 
-# Run code formatters
 format:
-	python -m ruff check --fix $(MONITORED_FOLDERS)
-	python -m ruff format $(MONITORED_FOLDERS)
+	uv run ruff check --fix $(MONITORED_FOLDERS)
+	uv run ruff format $(MONITORED_FOLDERS)
 
 # Run tests in Docker (Ubuntu 24.04, matches CI environment)
 test-docker:
