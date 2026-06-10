@@ -20,6 +20,7 @@ def test_addon_registers_deck(anki_session: AnkiSession):
 The goal is to provide add-on authors with a one-stop-shop for their functional testing needs, while also enabling them to QA their add-ons against a battery of different Anki versions, catching incompatibilities as they arise.
 
 [![CI](https://github.com/Alexander-Nilsson/pytest-anki/actions/workflows/general.yml/badge.svg)](https://github.com/Alexander-Nilsson/pytest-anki/actions/workflows/general.yml)
+[![PyPI version](https://img.shields.io/pypi/v/pytest-anki2.svg)](https://pypi.org/project/pytest-anki2/)
 
 ## Quickstart
 
