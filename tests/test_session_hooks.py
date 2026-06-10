@@ -1,4 +1,4 @@
-"""Unit tests for _snapshot_hooks / _restore_hooks hook isolation.
+"""Unit tests for HookRegistry snapshot/restore hook isolation.
 
 These tests mock the aqt.gui_hooks and anki.hooks modules so they
 can run without a real Anki runtime.
@@ -7,7 +7,7 @@ can run without a real Anki runtime.
 import types
 from unittest.mock import patch
 
-from pytest_anki._plugin.session import _restore_hooks, _snapshot_hooks
+from pytest_anki._plugin.hooks import HookRegistry, restore, snapshot
 
 
 def _make_fake_hook_modules():
@@ -113,3 +113,17 @@ def test_double_restore_is_idempotent():
         snapshot2 = _snapshot_hooks()
 
     assert snapshot == snapshot2
+
+
+def test_hook_registry_class_delegates():
+    """HookRegistry class methods delegate to module-level functions."""
+    fake = _make_fake_hook_modules()
+    with patch.dict("sys.modules", fake):
+        registry = HookRegistry()
+        snap = registry.snapshot()
+        assert "gui_hooks.profile_did_open" in snap
+
+        gh = fake["aqt.gui_hooks"]
+        gh.profile_did_open._hooks.append(lambda: 99)
+        registry.restore(snap)
+        assert len(gh.profile_did_open._hooks) == 1

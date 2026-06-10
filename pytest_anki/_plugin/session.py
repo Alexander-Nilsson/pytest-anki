@@ -29,7 +29,6 @@
 #
 # Any modifications to this file must keep this entire header intact.
 
-import copy
 import logging
 import re
 import sys
@@ -58,46 +57,13 @@ from .anki import (
 )
 from .compat import QThreadPool, QTimer, QWebEngineProfile
 from .errors import AnkiSessionError
+from .hooks import HookRegistry
 from .qt import SignallingWorker
 from .types import PathLike
 
 logger = logging.getLogger(__name__)
 
-_HookSnapshot = Dict[str, Any]
-
-
-def _snapshot_hooks() -> _HookSnapshot:
-    """Snapshot all Anki/aqt hook registries for later restoration."""
-    import aqt.gui_hooks as gh
-    from anki import hooks as anki_hooks
-
-    snapshot: _HookSnapshot = {}
-
-    for attr_name in dir(gh):
-        attr = getattr(gh, attr_name)
-        hooks = getattr(attr, "_hooks", None)
-        if hooks is not None:
-            snapshot[f"gui_hooks.{attr_name}"] = list(hooks)
-
-    snapshot["anki_hooks._hooks"] = copy.deepcopy(anki_hooks._hooks)
-
-    return snapshot
-
-
-def _restore_hooks(snapshot: _HookSnapshot):
-    """Restore Anki/aqt hook registries from a snapshot."""
-    import aqt.gui_hooks as gh
-    from anki import hooks as anki_hooks
-
-    for attr_name in dir(gh):
-        attr = getattr(gh, attr_name)
-        hooks = getattr(attr, "_hooks", None)
-        if hooks is not None:
-            key = f"gui_hooks.{attr_name}"
-            if key in snapshot:
-                attr._hooks = snapshot[key]
-
-    anki_hooks._hooks = copy.deepcopy(snapshot.get("anki_hooks._hooks", {}))
+_hook_registry = HookRegistry()
 
 
 if TYPE_CHECKING:
@@ -299,13 +265,13 @@ class AnkiSession:
             with anki_session.loaded_addon("my_addon") as mod:
                 assert mod.some_function()
         """
-        snapshot = _snapshot_hooks()
+        snapshot = _hook_registry.snapshot()
         addon_module = self.load_addon(package_name)
         try:
             yield addon_module
         finally:
             self._unload_addon(package_name)
-            _restore_hooks(snapshot)
+            _hook_registry.restore(snapshot)
 
     def _unload_addon(self, package_name: str):
         """Remove an add-on package and its submodules from sys.modules."""
