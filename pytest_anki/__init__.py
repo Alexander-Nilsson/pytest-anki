@@ -50,7 +50,7 @@ from ._plugin.errors import AnkiSessionError  # noqa: F401
 from ._plugin.session import AnkiSession  # noqa: F401
 from ._plugin.types import PathLike, UnpackedAddon  # noqa: F401
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 __author__ = "Aristotelis P. (Glutanimate), Michal Krassowski"
 __title__ = "pytest-anki"
 __homepage__ = "https://github.com/Alexander-Nilsson/pytest-anki"

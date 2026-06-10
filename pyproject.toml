@@ -1,6 +1,6 @@
 [project]
 name = "pytest-anki2"
-version = "2.1.0"
+version = "2.2.0"
 description = "A pytest plugin for testing Anki add-ons"
 authors = [
     { name = "Aristotelis P. (Glutanimate)" },
@@ -113,7 +113,7 @@ qt6-pypi = ["PyQt6>=6.3.1", "PyQt6-Qt6>=6.3.1", "PyQt6-WebEngine>=6.3.1", "PyQt6
 [dependency-groups]
 dev = [
     "ruff~=0.11.0",
-    "ty>=0.0.44",
+
     "pre-commit>=4.0",
     "requests~=2.26",
     "pytest-anki2[recommended-plugins]",

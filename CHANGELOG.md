@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.2.0-dev] — 2026-06-10
+## [2.2.0] — 2026-06-10
 
 ### Added
 - `pytest_anki/_plugin/aniki_compat.py` — central version-compatibility seam for 8 version-gated functions (issue 001)
@@ -8,9 +8,17 @@
 - `pytest_anki/_plugin/qtbot.py` — `StandaloneQtBot` class replaces inline string constant in subprocess runner (issue 003)
 - `pytest_anki/_plugin/hooks.py` — `HookRegistry` class replaces module-level `_snapshot_hooks`/`_restore_hooks` (issue 004)
 - `pytest_anki/_plugin/testing.py` — `TestAnkiQtInit` class replaces closure-based `custom_init_factory` (issue 005)
+- Complete API reference in `docs/api.md` with correct method signatures, missing properties, context managers, and fixture parameter tables
+- Docstrings for `chromium_version`, `set_timeout`, `reset_chrome_driver`
+- `base_name` fixture parameter to README parameter table
 ### Changed
 - `_plugin/` modules: 8 → 13 (5 new private modules)
 - Subprocess runner imports `StandaloneQtBot` via `sys.path` instead of embedding raw code string
+- `docs/api.md` — fixed 3 wrong method names/signatures, wrong default value; reorganized into properties/methods/context managers tables
+- `make lint`, `make format`, `make pre-commit` now use `uv run` for consistent tool versions
+- `make check` uses `uvx ty check` for faster type checking
+- Pre-commit ruff rev updated to v0.11.13 to match project venv
+- All `ty` diagnostics suppressed with `# ty: ignore[...]` annotations
 
 ## [2.1.0] — 2026-06-10
 
