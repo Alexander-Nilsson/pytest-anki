@@ -54,6 +54,7 @@ from .patch import (
 )
 from .qt import QtMessageMatcher
 from .session import AnkiSession
+from .teardown import TeardownManager
 from .types import PathLike
 from .util import find_free_port
 
@@ -303,45 +304,8 @@ def anki_running(
                     set_qt_message_handler_installer(qInstallMessageHandler)
 
     if aqt.mw:
-        logger.debug("Starting Anki session teardown")
-        try:
-            aqt.mw.errorHandler.unload()
-            aqt.mw.mediaServer.shutdown()
-        except Exception as exc:
-            logger.warning("Error during Anki session teardown: %s", exc)
-        try:
-            aqt.mw.backend.await_backup_completion()
-        except Exception as exc:
-            logger.warning("Error waiting for backup completion: %s", exc)
-        aqt.mw.deleteLater()
-        logger.debug("Anki session teardown complete")
-
-    # Restore gui_hooks to pre-session state
-    # Note: comprehensive hook restoration across all registries is handled
-    # by _snapshot_hooks/_restore_hooks in session.py for per-addon isolation.
-    # Here we restore at the session level as a safety net.
-    gui_hooks.profile_did_open._hooks[:] = _initial_profile_hooks
-
-    # remove hooks added during app initialization
-    from anki import hooks as anki_hooks
-
-    anki_hooks._hooks = {}
-
-    # Remove addon modules from sys.modules to prevent stale imports
-    # in subsequent tests running in the same process
-    import sys as _sys
-
-    removed_count = 0
-    for _mod_name in list(_sys.modules):
-        _mod = _sys.modules[_mod_name]
-        if _mod is not None and hasattr(_mod, "__file__") and _mod.__file__:
-            if anki_base_dir in str(_mod.__file__):
-                del _sys.modules[_mod_name]
-                removed_count += 1
-    if removed_count:
-        logger.debug("Removed %d addon modules from sys.modules", removed_count)
-
-    # test_nextIvl will fail on some systems if the locales are not restored
-    import locale
-
-    locale.setlocale(locale.LC_ALL, "")
+        TeardownManager.shutdown(
+            mw=aqt.mw,
+            anki_base_dir=anki_base_dir,
+            initial_profile_hooks=_initial_profile_hooks,
+        )
