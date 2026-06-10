@@ -31,7 +31,7 @@ def create_task_manager(main_window: "AnkiQt") -> Any:
     try:
         return TaskManager(main_window)
     except TypeError:
-        return TaskManager()
+        return TaskManager()  # type: ignore
 
 
 def create_flag_manager(main_window: "AnkiQt") -> Any:
@@ -73,7 +73,7 @@ def create_profile_manager(base_dir: str) -> Any:
 
         pm = ProfileManager(base=Path(base_dir))
     else:
-        pm = ProfileManager(base=base_dir)
+        pm = ProfileManager(base=base_dir)  # type: ignore
     return pm
 
 
@@ -82,7 +82,7 @@ def remove_deck(collection: "Collection", deck_id: int) -> None:
     from anki.decks import DeckId
 
     try:
-        collection.decks.remove([deck_id])  # type: ignore[list-item]
+        collection.decks.remove([deck_id])  # type: ignore
     except AttributeError:
         collection.decks.rem(DeckId(deck_id), cardsToo=True)
 
@@ -92,4 +92,4 @@ def get_deck_ids(collection: "Collection") -> List[int]:
     try:
         return [d.id for d in collection.decks.all_names_and_ids()]
     except AttributeError:
-        return collection.decks.allIds()  # type: ignore[attr-defined]
+        return collection.decks.allIds()  # type: ignore

@@ -125,7 +125,7 @@ jobs:
           python-version: "3.9"
           enable-cache: false
       - name: Install project
-        run: uv sync --only-group dev
+        run: uv sync --only-group dev --frozen
       - name: Run quality checks (ruff, ruff-format, ty)
         run: uv run pre-commit run --all-files --show-diff-on-failure
 
