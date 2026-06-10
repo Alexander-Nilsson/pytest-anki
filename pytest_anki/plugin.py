@@ -29,18 +29,21 @@
 #
 # Any modifications to this file must keep this entire header intact.
 
-__all__ = ["anki_session"]
+__all__ = ["anki_session", "anki_session_module"]
 
+import logging
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
 import pytest
 
 if TYPE_CHECKING:
-    from pytest import Config, FixtureRequest, Item
+    from pytest import Config, FixtureRequest, Item, Metafunc
     from pytestqt.qtbot import QtBot
 
 from ._plugin.launch import anki_running
 from ._plugin.session import AnkiSession
+
+logger = logging.getLogger(__name__)
 
 
 def pytest_addoption(parser):
@@ -61,6 +64,26 @@ def pytest_addoption(parser):
 
 def pytest_configure(config: "Config"):
     config.addinivalue_line("markers", "forked: run test in a forked subprocess")
+    config.addinivalue_line(
+        "markers",
+        "anki_session(**kwargs): configure anki_session fixture parameters "
+        "via marker kwargs instead of indirect parametrization. "
+        "Example: @pytest.mark.anki_session(load_profile=True)",
+    )
+
+
+def pytest_generate_tests(metafunc: "Metafunc"):
+    if "anki_session" in metafunc.fixturenames:
+        marker = metafunc.definition.get_closest_marker("anki_session")
+        if marker:
+            existing = list(metafunc.definition.iter_markers("parametrize"))
+            if not any("anki_session" in p.args for p in existing if p.args):
+                params = (
+                    marker.kwargs
+                    if marker.kwargs
+                    else (marker.args[0] if marker.args else {})
+                )
+                metafunc.parametrize("anki_session", [params], indirect=True)
 
 
 def pytest_collection_modifyitems(config: "Config", items: list["Item"]):
@@ -77,12 +100,13 @@ def anki_session(request: "FixtureRequest", qtbot: "QtBot") -> Iterator[AnkiSess
     """Fixture that instantiates Anki, yielding an AnkiSession object
 
     All keyword arguments below may be passed to the fixture by using indirect
-    parametrization.
+    parametrization or the @pytest.mark.anki_session(...) marker.
 
     E.g., to specify a custom profile name you would decorate your test method with:
 
-    > @pytest.mark.parametrize("anki_session", [dict(profile_name="foo")],
-                               indirect=True)
+    > @pytest.mark.anki_session(profile_name="foo")
+    > def test_something(anki_session):
+    >     ...
 
     Keyword Arguments:
         base_path {str} -- Path to write Anki base folder to
@@ -140,6 +164,37 @@ def anki_session(request: "FixtureRequest", qtbot: "QtBot") -> Iterator[AnkiSess
             caller full control over the add-on import time.
     """
 
+    indirect_parameters: Optional[Dict[str, Any]] = getattr(request, "param", None)
+
+    with (
+        anki_running(qtbot=qtbot)
+        if not indirect_parameters
+        else anki_running(qtbot=qtbot, **indirect_parameters)
+    ) as session:
+        yield session
+
+
+@pytest.fixture(scope="module")
+def anki_session_module(
+    request: "FixtureRequest", qtbot: "QtBot"
+) -> Iterator[AnkiSession]:
+    """Module-scoped variant of anki_session.
+
+    Starts Anki once per module and reuses the same session for all tests.
+    Tests share the same Anki process — use only when tests are independent
+    and do not mutate global Anki state.
+
+    Accepts the same parameters as anki_session via @pytest.mark.anki_session(...)
+    or indirect parametrization.
+
+    .. caution::
+
+       Because the session is module-scoped, ``pytest-forked`` cannot isolate
+       individual tests. Use ``--anki-no-fork`` or set ``anki_force_fork = false``
+       in ``pyproject.toml`` when using this fixture. Mutating state (addons,
+       collection, config) in one test will affect subsequent tests in the same
+       module.
+    """
     indirect_parameters: Optional[Dict[str, Any]] = getattr(request, "param", None)
 
     with (

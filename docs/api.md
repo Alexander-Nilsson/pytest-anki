@@ -6,7 +6,15 @@
 
 The main pytest fixture. Yields an `AnkiSession` instance.
 
-Supports indirect parametrization via `@pytest.mark.parametrize` — pass a `dict` of keyword arguments:
+Parameters can be passed via the `@pytest.mark.anki_session()` marker (recommended):
+
+```python
+@pytest.mark.anki_session(profile_name="test", load_profile=True)
+def test_with_profile(anki_session: AnkiSession):
+    ...
+```
+
+Or via indirect parametrization:
 
 ```python
 @pytest.mark.parametrize("anki_session", [{"profile_name": "test", "load_profile": True}], indirect=True)
@@ -15,6 +23,21 @@ def test_with_profile(anki_session: AnkiSession):
 ```
 
 See `pytest_anki.plugin.anki_session` docstring for all parameters.
+
+### `anki_session_module`
+
+Module-scoped variant of `anki_session`. Starts Anki once per module and reuses the same session for all tests. Accepts the same parameters.
+
+```python
+def test_a(anki_session_module: AnkiSession):
+    ...
+
+def test_b(anki_session_module: AnkiSession):
+    # Shares the same Anki process as test_a
+    ...
+```
+
+Use with `--anki-no-fork` to share a single process across all tests in the module.
 
 ---
 
@@ -30,7 +53,8 @@ Full-featured session wrapper around a running Anki instance.
 | `install_deck(path)` / `remove_deck(deck_id)` | Manage `.apkg` decks |
 | `install_addon(path_or_name, source_dir=None)` | Install packed (`.ankiaddon`) or unpacked add-ons |
 | `write_addon_config(package, config, meta=None)` | Write `config.json` / `meta.json` |
-| `loaded_addon(package)` | Context manager that cleans up `sys.modules` on exit |
+| `loaded_addon(package)` | Context manager that cleans up `sys.modules` and restores hook registries on exit |
+| `reset_state()` | Clear addon modules from `sys.modules` and process pending Qt events |
 | `run_in_thread_and_wait(target, timeout=15000)` | Run a function in the Qt event loop with timeout |
 | `set_timeout(callback, delay_ms)` | Schedule a callback on the Qt event loop |
 | `run_with_chrome_driver(webview_type, handler)` | Attach Selenium ChromeDriver to Anki webviews |
@@ -46,11 +70,23 @@ Dataclass for pre-configuring Anki object state:
 
 ### `AnkiWebViewType`
 
-Enum: `ANKI_MAIN` or `ANKI_REVIEWER` — selects which webview ChromeDriver attaches to.
+Enum: `main_webview`, `top_toolbar`, `bottom_toolbar`, `previewer`, `browser_card_info`, `card_layout`, etc.
 
 ### `AnkiSessionError`
 
 Exception raised on session errors (e.g., timeout, profile load failures).
+
+### `PathLike`
+
+`Union[str, Path]` — type alias for path arguments in the public API.
+
+### `UnpackedAddon`
+
+`Tuple[str, PathLike]` — type alias for (package_name, addon_source_path).
+
+### `ConfigPaths`
+
+`NamedTuple(default_config: Optional[Path], user_config: Optional[Path])` — paths returned by `create_addon_config()`.
 
 ---
 
@@ -65,3 +101,9 @@ Exception raised on session errors (e.g., timeout, profile load failures).
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `anki_force_fork` | `bool` | `true` | Fork each test into a subprocess |
+
+## pytest markers
+
+| Marker | Description |
+|---|---|
+| `@pytest.mark.anki_session(**kwargs)` | Pass parameters to the `anki_session` fixture without indirect parametrization |

@@ -34,13 +34,23 @@
 A simple pytest plugin for testing Anki add-ons
 """
 
-__all__ = ["AnkiStateUpdate", "AnkiWebViewType", "AnkiSessionError", "AnkiSession"]
+__all__ = [
+    "AnkiStateUpdate",
+    "AnkiWebViewType",
+    "AnkiSessionError",
+    "AnkiSession",
+    "PathLike",
+    "UnpackedAddon",
+    "ConfigPaths",
+]
 
+from ._plugin.addons import ConfigPaths  # noqa: F401
 from ._plugin.anki import AnkiStateUpdate, AnkiWebViewType  # noqa: F401
 from ._plugin.errors import AnkiSessionError  # noqa: F401
 from ._plugin.session import AnkiSession  # noqa: F401
+from ._plugin.types import PathLike, UnpackedAddon  # noqa: F401
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "Aristotelis P. (Glutanimate), Michal Krassowski"
 __title__ = "pytest-anki"
 __homepage__ = "https://github.com/Alexander-Nilsson/pytest-anki"

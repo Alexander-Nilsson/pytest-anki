@@ -1,60 +1,144 @@
 # Changelog
 
-## 2.0.2 (2026-06-08)
+## [2.1.0] — 2026-06-10
 
-### Bug Fixes
-- **Fix broken PyPI wheel**: the `include = ["pytest_anki/py.typed"]` hatch build config caused the wheel to contain only the empty `py.typed` marker file, omitting all Python source. The package was completely non-functional on PyPI (`ModuleNotFoundError: pytest_anki.plugin`). Replaced with `packages = ["pytest_anki"]` so hatchling discovers all modules.
+### Added
+- `@pytest.mark.anki_session(...)` marker for passing parameters to the fixture
+- `anki_session_module` fixture (module-scoped, shares Anki across tests)
+- `AnkiSession.reset_state()` for clearing addon modules between tests
+- `py.typed` marker + full public type re-exports (`PathLike`, `UnpackedAddon`, `ConfigPaths`)
+- Hook snapshot/restore in `loaded_addon()` for non-forked test isolation
+- `CHANGELOG.md` file
+- Docker test workflow (`make test-docker`, `docker-compose.yml`)
+- `test-light` Makefile target for headless unit tests
+- Version constraint files in `constraints/`
 
-## 2.0.1 (2026-06-08)
+## [2.0.2] — 2026-06-10
 
-### Infrastructure
-- Migrate type checker from mypy/pyright to Astral's `ty` ([#74873cd](https://github.com/Alexander-Nilsson/pytest-anki/commit/74873cd))
-- Add `ty: ignore` annotations alongside existing `type: ignore` for Anki API incompatibilities
-- Resolve `ty` type errors for `pytest.skip`/`pytest.fail` (Protocol wrapper obscures keyword params)
-- Fix CI failures: E402, typecheck, macOS runner, uv cache, Python 3.9 venv activation
+### Fixed
+- Include all source files in wheel build (fixes empty PyPI wheel)
 
-## 2.0.0 (2025-06-06)
+## [2.0.1] — 2026-06-10
 
-### Infrastructure
-- Renamed PyPI package from `pytest-anki` to `pytest-anki2` (name was taken)
-- Added GitHub Actions release workflow (publish to PyPI on tag via trusted publishing)
-- Bumped `packaging` constraint from `~=21.3` to `>=21.3` to avoid stale pin
-- Added `__all__` to `plugin.py` for clean public API surface
-- Added coverage (`pytest-cov`) reporting to CI
-- Added minimal API reference docs under `docs/`
+### Fixed
+- `ty` type-checker compatibility: use keyword args for `pytest.skip`/`pytest.fail`
+- Disable uv cache on lint and typecheck CI jobs
+- Use `actions/setup-python` before `setup-uv` for reliable Python 3.9 install
+- CI failures on macOS runner, segfault, E402
 
-### Features
-- Add `--anki-no-fork` CLI flag and `anki_force_fork` ini option to opt out of automatic test forking.
-- Add `QT_API` environment variable override (`qt5`/`qt6`/`pyqt5`/`pyqt6`) for explicit Qt binding selection.
-- Support Anki 25.07 and 25.09 in CI matrix.
-- Python 3.13 added to CI test matrix.
+### Changed
+- Migrate from mypy/pyright to `ty` for type checking
 
-### Improvements
-- Auto-fork all tests by default via `pytest_collection_modifyitems`.
-- Replace `pytest-forked` with xdist `>=3.0` native forking.
-- Make Selenium an optional dependency (`selenium`/`web` extras).
-- Add Qt6/PyQt6 support via compat layer with auto-detection.
-- Split `qt6` extra into `qt6-system` and `qt6-pypi` for cross-distro compatibility.
-- Pre-existing type errors annotated with specific `# type: ignore` codes.
-- `.pre-commit-config.yaml` added with ruff + mypy hooks.
-- Nightly CI schedule to catch regressions from Anki rolling releases.
+## [2.0.0] — 2026-06-09
 
-### Documentation
-- README rewritten with uv instructions, Qt6/Qt5 setup guide, selenium extras.
-- Expanded usage section with comprehensive API examples.
-- Documented local testing limitations (Qt6 ABI compatibility).
+### Added
+- Qt6/PyQt6 support with auto-detection at import time
+- `QT_API` env-var override for binding selection
+- `QTWEBENGINE_CHROMIUM_FLAGS=--no-sandbox` only applies on Qt5 Linux
+- `--anki-no-fork` CLI flag and `anki_force_fork` ini option to disable auto-forking
+- `loaded_addon()` context manager for safe addon import/cleanup
+- `skip_loading_addons` parameter for the `anki_session` fixture
+- Pre-commit hooks (ruff + mypy)
+- Python 3.14 CI
+- Nightly CI schedule
+- macOS test runner
+- Web debugging via Selenium (optional dependency)
+- Expanded CI matrix: 10 entries across Qt5/Qt6 and Anki 2.1.54–25.09
 
-### Testing
-- Tests added for `QT_API` env var mapping and `--anki-no-fork` option.
-- Selenium tests skip gracefully via `importorskip`.
+### Changed
+- Package restructured: plugin code moved to `pytest_anki/_plugin/` (private), `pytest_anki/plugin.py` as public facade
+- Migrated from Poetry to uv for dependency management
+- Replaced flake8/pylint with ruff
+- Replaced mypy/pyright with `ty` for type checking
+- Selenium is now an optional dependency (extras: `selenium`, `web`)
+- Anki/aqt moved from unconditional dependencies to extras only
+- Package renamed to `pytest-anki2` on PyPI (namespace collision)
 
-### Maintenance
-- Bump pytest from `~=6.2.5` to `>=7.0`.
-- Remove dead code: `config.py`, `anki-current.json`, stale build references.
-- Lock file upgraded for Python 3.14 compatibility (flask/werkzeug).
-- CI matrix expanded to 10 entries covering Qt5 + Qt6 across Anki 2.1.54–25.09.
-- Lint (ruff) and typecheck (mypy + pyright) CI jobs restored.
+### Fixed
+- 4 pre-existing type errors resolved
+- `locale.getdefaultlocale()` deprecation in launch teardown
+- Lazy-init `base_path` default instead of call at definition time
+- QtWebEngine web-debugging tests isolated in subprocess
+- CI stabilization across Qt5/Qt6 matrix
+- Auto-forking via `pytest.mark.forked` (conftest.py)
 
-## 1.0.0b7
+### Removed
+- Unconditional `anki`/`aqt` from `[project] dependencies` (must use extras)
+- Stale `dependabot.yml` and unused `env_marker` module
 
-- Last stable release on PyPI. See [GitHub releases](https://github.com/Alexander-Nilsson/pytest-anki/releases) for earlier changelogs.
+## [1.0.0-beta.7] — 2025-03-15
+
+### Added
+- `addon_config_created` context manager
+- `preset_anki_state` parameter for fixture-based API
+- `set_anki_object_data` helper for `col.conf` ConfigManager API (Anki 2.1.45+)
+- Compatibility with Anki's new `DeckId` NewType
+- Test coverage for addon config management, addon loading, state updates
+- Support for packed `.ankiaddon` files
+
+### Fixed
+- Collection access error when using `addon_config_created` without loaded profile
+- Python 3.12 compatibility
+- Qt6 nightly compatibility
+
+## [1.0.0-beta.6] — 2024-08-20
+
+### Added
+- Python 3.11, 3.12 support
+- Type annotations throughout
+- Test for `--no-sandbox` flag on Linux
+
+### Fixed
+- `--no-sandbox` flag only applied on Linux (not macOS/Windows)
+- PyQt6 compatibility for `QWebEngineProfile.defaultProfile()`
+
+## [1.0.0-beta.5] — 2024-05-10
+
+### Added
+- Remote web debugging support via Selenium
+- `run_with_chrome_driver()` and `reset_chrome_driver()` methods
+- `chromium_version` property
+- Web debugging tests
+
+## [1.0.0-beta.4] — 2024-02-15
+
+### Added
+- `run_in_thread_and_wait()` for running tasks in QThreadPool
+- `set_timeout()` for delayed task execution
+- Deck management: `install_deck()`, `remove_deck()`, `deck_installed` context manager
+
+## [1.0.0-beta.3] — 2023-10-01
+
+### Added
+- `create_addon_config()` API
+- Anki state management: `update_anki_state()`, `AnkiStateUpdate` dataclass
+- Support for `colconf_storage`, `profile_storage`, `meta_storage`
+
+## [1.0.0-beta.2] — 2023-06-15
+
+### Added
+- Addon installation from source folders
+- Addon configuration via `addon_configs` parameter
+- Test samples for addon testing
+- CI with GitHub Actions
+
+## [1.0.0-beta.1] — 2023-03-01
+
+### Added
+- Initial `anki_session` pytest fixture
+- Basic Anki profile management
+- Addon loading via `load_addon()`
+- QtBot integration
+- Support for Anki 2.1.49–2.1.54
+- Python 3.9, 3.10 support
+
+[2.0.2]: https://github.com/Alexander-Nilsson/pytest-anki/releases/tag/v2.0.2
+[2.0.1]: https://github.com/Alexander-Nilsson/pytest-anki/releases/tag/v2.0.1
+[2.0.0]: https://github.com/Alexander-Nilsson/pytest-anki/releases/tag/v2.0.0
+[1.0.0-beta.7]: https://github.com/Alexander-Nilsson/pytest-anki/releases/tag/v1.0.0-beta.7
+[1.0.0-beta.6]: https://github.com/Alexander-Nilsson/pytest-anki/releases/tag/v1.0.0-beta.6
+[1.0.0-beta.5]: https://github.com/Alexander-Nilsson/pytest-anki/releases/tag/v1.0.0-beta.5
+[1.0.0-beta.4]: https://github.com/Alexander-Nilsson/pytest-anki/releases/tag/v1.0.0-beta.4
+[1.0.0-beta.3]: https://github.com/Alexander-Nilsson/pytest-anki/releases/tag/v1.0.0-beta.3
+[1.0.0-beta.2]: https://github.com/Alexander-Nilsson/pytest-anki/releases/tag/v1.0.0-beta.2
+[1.0.0-beta.1]: https://github.com/Alexander-Nilsson/pytest-anki/releases/tag/v1.0.0-beta.1

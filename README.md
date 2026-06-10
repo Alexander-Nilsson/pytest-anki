@@ -266,12 +266,12 @@ def test_threaded_task(anki_session: AnkiSession):
 
 ### Configuring the Anki Session
 
-Customize the session via indirect parametrization:
+Customize the session using the dedicated marker (recommended):
 
 ```python
 import pytest
 
-@pytest.mark.parametrize("anki_session", [dict(
+@pytest.mark.anki_session(
     load_profile=True,
     profile_name="CustomUser",
     lang="de_DE",
@@ -281,9 +281,17 @@ import pytest
     preset_anki_state=AnkiStateUpdate(meta_storage={"key": True}),
     enable_web_debugging=False,
     skip_loading_addons=False,
-)], indirect=True)
+)
 def test_configured_session(anki_session: AnkiSession):
     assert anki_session.mw.pm.name == "CustomUser"
+```
+
+The equivalent via indirect parametrization also works:
+
+```python
+@pytest.mark.parametrize("anki_session", [dict(load_profile=True)], indirect=True)
+def test_via_parametrize(anki_session: AnkiSession):
+    ...
 ```
 
 | Parameter | Type | Default | Description |
@@ -298,6 +306,40 @@ def test_configured_session(anki_session: AnkiSession):
 | `addon_configs` | `List[Tuple[str, dict]]` | `None` | Config key/value pairs for add-ons |
 | `enable_web_debugging` | `bool` | `False` | Enable remote devtools |
 | `skip_loading_addons` | `bool` | `False` | Install but don't auto-load add-ons |
+
+### Module-scoped session
+
+For suites with many tests that don't mutate global state, use the module-scoped variant:
+
+```python
+def test_first(anki_session_module: AnkiSession):
+    assert anki_session_module.mw is not None
+
+def test_second(anki_session_module: AnkiSession):
+    # Shares the same Anki process as test_first
+    pass
+```
+
+`anki_session_module` accepts the same parameters as `anki_session`. Use `reset_state()` between tests to clear addon modules:
+
+```python
+def test_isolated(anki_session_module: AnkiSession):
+    anki_session_module.load_addon("my_addon")
+    anki_session_module.reset_state()  # clears sys.modules
+```
+
+When using module-scoped sessions, disable auto-forking with `--anki-no-fork` or `anki_force_fork = false` to share a single process.
+
+### Isolated addon loading
+
+The `loaded_addon` context manager restores hook registries on exit, preventing state leakage between tests when running without forks:
+
+```python
+def test_isolated_addon(anki_session: AnkiSession):
+    with anki_session.loaded_addon("my_addon") as mod:
+        assert mod.some_function()
+    # Hook registries are restored to pre-import state
+```
 
 ### Web debugging
 
@@ -357,6 +399,8 @@ Where `anki_session` comes in handy is further towards the upper levels of the t
 Since v2.0.0, all tests using this plugin are automatically marked as `forked` (via `pytest_collection_modifyitems`). This is because, while the plugin does attempt to tear down Anki sessions as cleanly as possible on exit, this process is never quite perfect, especially for add-ons that monkey-patch Anki.
 
 With unforked test runs, factors like that can lead to unexpected behavior, or worse still, your tests crashing. Forking a new subprocess for each test bypasses these limitations.
+
+When running without forks, the `loaded_addon()` context manager now also snapshots and restores `aqt.gui_hooks` and `anki.hooks` registries, preventing addon hook registrations from leaking between tests.
 
 To opt out of automatic forking, set `anki_force_fork = false` in your `pyproject.toml`:
 
@@ -452,6 +496,10 @@ Before submitting any changes, please make sure that `pytest-anki`'s checks and 
 make lint
 make check
 make test      # requires Ubuntu-compatible Qt6 ABI; CI runs the full matrix
+# or use Docker to match the CI environment:
+make test-docker
+# or run just the unit tests (no Qt6 ABI needed):
+make test-light
 ```
 
 This project uses `ruff` to enforce a consistent code style. To auto-format your code you can use:

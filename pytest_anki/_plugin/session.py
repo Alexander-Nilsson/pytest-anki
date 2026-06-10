@@ -29,6 +29,7 @@
 #
 # Any modifications to this file must keep this entire header intact.
 
+import copy
 import logging
 import re
 import sys
@@ -60,6 +61,43 @@ from .qt import SignallingWorker
 from .types import PathLike
 
 logger = logging.getLogger(__name__)
+
+_HookSnapshot = Dict[str, Any]
+
+
+def _snapshot_hooks() -> _HookSnapshot:
+    """Snapshot all Anki/aqt hook registries for later restoration."""
+    import aqt.gui_hooks as gh
+    from anki import hooks as anki_hooks
+
+    snapshot: _HookSnapshot = {}
+
+    for attr_name in dir(gh):
+        attr = getattr(gh, attr_name)
+        hooks = getattr(attr, "_hooks", None)
+        if hooks is not None:
+            snapshot[f"gui_hooks.{attr_name}"] = list(hooks)
+
+    snapshot["anki_hooks._hooks"] = copy.deepcopy(anki_hooks._hooks)
+
+    return snapshot
+
+
+def _restore_hooks(snapshot: _HookSnapshot):
+    """Restore Anki/aqt hook registries from a snapshot."""
+    import aqt.gui_hooks as gh
+    from anki import hooks as anki_hooks
+
+    for attr_name in dir(gh):
+        attr = getattr(gh, attr_name)
+        hooks = getattr(attr, "_hooks", None)
+        if hooks is not None:
+            key = f"gui_hooks.{attr_name}"
+            if key in snapshot:
+                attr._hooks = snapshot[key]
+
+    anki_hooks._hooks = copy.deepcopy(snapshot.get("anki_hooks._hooks", {}))
+
 
 if TYPE_CHECKING:
     from anki.collection import Collection
@@ -260,16 +298,22 @@ class AnkiSession:
         """Context manager that loads an add-on and cleans it from
         ``sys.modules`` on exit, allowing re-import in subsequent tests.
 
+        Also snapshots and restores Anki hook registries to prevent
+        module-level hook registrations from leaking between tests
+        when running without process-level isolation (``--anki-no-fork``).
+
         Usage::
 
             with anki_session.loaded_addon("my_addon") as mod:
                 assert mod.some_function()
         """
+        snapshot = _snapshot_hooks()
         addon_module = self.load_addon(package_name)
         try:
             yield addon_module
         finally:
             self._unload_addon(package_name)
+            _restore_hooks(snapshot)
 
     @staticmethod
     def _unload_addon(package_name: str):
@@ -340,6 +384,29 @@ class AnkiSession:
         data class.
         """
         update_anki_state(main_window=self._mw, anki_state_update=anki_state_update)
+
+    # Session state reset ####
+
+    def reset_state(self):
+        """Reset Anki session state for reuse between tests.
+
+        Clears addon modules from ``sys.modules``, resets hook registries,
+        and processes pending Qt events. Useful when sharing a session
+        across multiple tests (e.g. with ``anki_session_module`` fixture).
+
+        Does not unload the profile or restart Anki — only clears
+        module-level side effects that accumulate during testing.
+        """
+        import aqt
+
+        for mod_name in list(sys.modules):
+            mod = sys.modules[mod_name]
+            mod_file = getattr(mod, "__file__", None)
+            if mod_file is not None and self._base in mod_file:
+                del sys.modules[mod_name]
+
+        if aqt.mw and aqt.mw.app:
+            aqt.mw.app.processEvents()
 
     # Synchronicity / event loop handling ####
 

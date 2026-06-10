@@ -57,6 +57,14 @@ Tests use pytest (self-testing plugin). No tox, no nox. CI runs on push/PR via
 - [x] Annotate 4 pre-existing type errors with specific `# type: ignore[<code>]` + explanations.
 - [x] Fix all 4 pre-existing type errors (commit `17826e2`).
 - [x] Add Python 3.14 to CI matrix.
+- [x] `@pytest.mark.anki_session(...)` marker for fixture parameters.
+- [x] Module-scoped `anki_session_module` fixture.
+- [x] `py.typed` marker + full public type re-exports.
+- [x] Hook snapshot/restore for addon isolation (non-forked resilience).
+- [x] `AnkiSession.reset_state()` for session reuse.
+- [x] Docker test workflow (`docker compose run --rm test`).
+- [x] Version constraint files in `constraints/`.
+- [x] `CHANGELOG.md` created.
 
 ## Open Decisions / Unresolved Questions
 

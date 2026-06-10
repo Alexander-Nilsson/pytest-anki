@@ -290,3 +290,76 @@ def test_anki_state_updates(anki_session: AnkiSession):
             _assert_anki_state_updated(
                 main_window=anki_session.mw, anki_state_update=anki_state_update
             )
+
+
+# -- Session state reset ---------------------------------------------------
+
+
+def test_reset_state_clears_addon_modules(anki_session: AnkiSession):
+    _sample_addon_three_path = Path(__file__).parent / "samples" / "add-ons" / "simple"
+    package_name = "sample_addon_three"
+
+    sys.path.insert(0, str(_sample_addon_three_path))
+    try:
+        anki_session.load_addon(package_name=package_name)
+        assert package_name in sys.modules
+        assert package_name in anki_session.mw.addonManager.allAddons()
+
+        anki_session.reset_state()
+
+        assert package_name not in sys.modules
+    finally:
+        sys.path.remove(str(_sample_addon_three_path))
+
+
+def test_reset_state_is_idempotent(anki_session: AnkiSession):
+    anki_session.reset_state()
+    assert anki_session.mw is not None
+
+
+# -- loaded_addon hook isolation --------------------------------------------
+
+
+def test_loaded_addon_restores_hooks(anki_session: AnkiSession):
+    """Verify that loaded_addon restores hook registries on exit."""
+    from aqt import gui_hooks
+
+    _sample_addon_three_path = Path(__file__).parent / "samples" / "add-ons" / "simple"
+    package_name = "sample_addon_three"
+
+    snapshot_before = len(gui_hooks.profile_did_open._hooks)
+
+    anki_session.loaded_addon(package_name=package_name)
+
+    assert len(gui_hooks.profile_did_open._hooks) == snapshot_before
+
+
+def test_loaded_addon_isolates_hook_mutations(anki_session: AnkiSession):
+    """Verify hooks mutated during loaded_addon are restored on exit."""
+    from aqt import gui_hooks
+
+    _sample_addon_three_path = Path(__file__).parent / "samples" / "add-ons" / "simple"
+    package_name = "sample_addon_three"
+
+    snapshot_before = _snapshot_gui_hooks(gui_hooks)
+
+    with anki_session.loaded_addon(package_name=package_name):
+        gui_hooks.profile_did_open.append(lambda: None)
+        # Verify hook was actually added
+        assert len(gui_hooks.profile_did_open._hooks) > len(
+            snapshot_before.get("profile_did_open", [])
+        )
+
+    assert len(gui_hooks.profile_did_open._hooks) == len(
+        snapshot_before.get("profile_did_open", [])
+    )
+
+
+def _snapshot_gui_hooks(gui_hooks_module) -> dict:
+    snapshot = {}
+    for attr_name in dir(gui_hooks_module):
+        attr = getattr(gui_hooks_module, attr_name)
+        hooks = getattr(attr, "_hooks", None)
+        if hooks is not None:
+            snapshot[attr_name] = list(hooks)
+    return snapshot

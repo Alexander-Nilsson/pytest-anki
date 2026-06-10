@@ -327,13 +327,16 @@ def anki_running(
         aqt.mw.deleteLater()
         logger.debug("Anki session teardown complete")
 
-    # Restore gui_hooks to pre-session state (addons may have registered hooks)
+    # Restore gui_hooks to pre-session state
+    # Note: comprehensive hook restoration across all registries is handled
+    # by _snapshot_hooks/_restore_hooks in session.py for per-addon isolation.
+    # Here we restore at the session level as a safety net.
     gui_hooks.profile_did_open._hooks[:] = _initial_profile_hooks
 
     # remove hooks added during app initialization
-    from anki import hooks
+    from anki import hooks as anki_hooks
 
-    hooks._hooks = {}
+    anki_hooks._hooks = {}
 
     # Remove addon modules from sys.modules to prevent stale imports
     # in subsequent tests running in the same process

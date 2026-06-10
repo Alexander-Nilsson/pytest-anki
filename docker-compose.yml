@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  test:
+    image: ubuntu:24.04
+    working_dir: /app
+    environment:
+      DEBIAN_FRONTEND: noninteractive
+      QT_QPA_PLATFORM: offscreen
+    volumes:
+      - .:/app
+    command: >
+      bash -c "
+        apt-get update -qq &&
+        apt-get install -y -qq python3.12 python3-pip curl libxcb-cursor0 libnss3 libxkbcommon0 > /dev/null &&
+        curl -LsSf https://astral.sh/uv/install.sh | sh &&
+        export PATH=$HOME/.cargo/bin:$PATH &&
+        uv sync --no-default-groups --group dev --extra anki-2411 --extra qt6-2411 &&
+        uv run pytest -n4 tests/ -p no:xvfb
+      "
