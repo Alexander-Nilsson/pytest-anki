@@ -59,7 +59,7 @@ def test_pytest_addoption_registers_anki_force_fork_ini():
     from pytest_anki.plugin import pytest_addoption
 
     pytest_addoption(parser)
-    assert "anki_force_fork" in parser._ininames
+    assert "anki_force_fork" in parser._inidict
 
 
 # -- @pytest.mark.anki_session marker -------------------------------------
