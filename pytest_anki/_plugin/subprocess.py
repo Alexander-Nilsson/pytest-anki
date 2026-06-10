@@ -35,115 +35,6 @@ import tempfile
 import textwrap
 from typing import Any, Dict, Optional
 
-_STANDALONE_QT_BOT_CODE = r"""
-import os, sys, json
-
-# Auto-detect Qt binding (mirrors compat.py logic)
-_QT_API_MAP = {"qt5": "PyQt5", "pyqt5": "PyQt5", "qt6": "PyQt6", "pyqt6": "PyQt6"}
-_qt_api = os.environ.get("QT_API", "").strip().lower()
-_qt_prefix = _QT_API_MAP.get(_qt_api)
-if _qt_prefix is None:
-    for _prefix in ("PyQt6", "PyQt5"):
-        try:
-            __import__(_prefix)
-            _qt_prefix = _prefix
-            break
-        except ImportError:
-            continue
-    else:
-        raise ImportError("No Qt bindings found (PyQt5 or PyQt6)")
-
-if _qt_prefix == "PyQt6":
-    from PyQt6.QtCore import QCoreApplication, QEventLoop, Qt as _Qt, QTimer as _QTimer
-    from PyQt6.QtWidgets import QApplication as _QApplication
-    # Qt6: AA_ShareOpenGLContexts must be set before QCoreApplication.
-    # Fall back to importing WebEngineWidgets if attribute doesn't exist.
-    _aa_share = getattr(_Qt, "AA_ShareOpenGLContexts", None)
-    if _aa_share is not None:
-        QCoreApplication.setAttribute(_aa_share)
-    else:
-        try:
-            from PyQt6.QtWebEngineWidgets import QWebEngineView  # noqa: F401
-        except ImportError:
-            pass
-    _ALL_EVENTS = QEventLoop.ProcessEventsFlag.AllEvents
-else:
-    from PyQt5.QtCore import QCoreApplication, QEventLoop, QTimer as _QTimer
-    from PyQt5.QtWidgets import QApplication as _QApplication
-    # Qt5: QtWebEngineWidgets must be imported before QCoreApplication
-    try:
-        from PyQt5.QtWebEngineWidgets import QWebEngineView  # noqa: F401
-    except ImportError:
-        pass
-    _ALL_EVENTS = QEventLoop.AllEvents
-
-# Ensure a QCoreApplication exists for event-loop-based wait_signal.
-# Use QCoreApplication (not QApplication) so that Anki can later create
-# its own QApplication (AnkiApp) without conflicts.
-if not QCoreApplication.instance():
-    _core_app = QCoreApplication([])
-
-
-class _SignalCatcher:
-    # Matches QtBot.wait_signal behavior: connect in __enter__, wait in __exit__
-    def __init__(self, signal, timeout=5000):
-        self.signal = signal
-        self.timeout = timeout
-        self.args = None
-        self._received = False
-
-    def __enter__(self):
-        self.signal.connect(self._on_signal)
-        return self
-
-    def __exit__(self, *args):
-        if not self._received:
-            _loop = QEventLoop()
-            _QTimer.singleShot(self.timeout, _loop.quit)
-            self.signal.connect(_loop.quit)
-            _loop.exec()
-            if not self._received:
-                raise TimeoutError(
-                    "Signal not received within {}ms".format(self.timeout)
-                )
-        try:
-            self.signal.disconnect(self._on_signal)
-        except TypeError:
-            pass
-
-    def _on_signal(self, *args):
-        self._received = True
-        self.args = args
-
-
-class _StandaloneQtBot:
-    def wait_signal(self, signal, timeout=5000):
-        return _SignalCatcher(signal, timeout)
-
-    def wait_until(self, callback, timeout=15000):
-        import time
-        _deadline = time.time() + timeout / 1000.0
-        while time.time() < _deadline:
-            try:
-                _result = callback()
-            except AssertionError:
-                pass
-            else:
-                if _result is None:
-                    return
-                if _result:
-                    return
-            # Use a brief event loop to process I/O and IPC events that
-            # processEvents() alone may not handle (e.g. QWebChannel IPC)
-            _loop = QEventLoop()
-            _QTimer.singleShot(50, _loop.quit)
-            _loop.exec()
-        raise TimeoutError("Condition not met within {}ms".format(timeout))
-
-
-_qtbot = _StandaloneQtBot()
-"""
-
 
 def run_in_subprocess(
     body_source: str,
@@ -179,7 +70,7 @@ def run_in_subprocess(
         + env_assignments
         + "\n"
         + "sys.path.insert(0, {})\n".format(json.dumps(_project_root))
-        + _STANDALONE_QT_BOT_CODE
+        + "from pytest_anki._plugin.qtbot import _qtbot, StandaloneQtBot\n"
         + "\n"
         + "def _run_test():\n"
         + textwrap.indent(body_source, "    ")
