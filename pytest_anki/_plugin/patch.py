@@ -56,6 +56,12 @@ from .addons import (
     install_addon_from_folder,
     install_addon_from_package,
 )
+from .aniki_compat import (
+    create_flag_manager,
+    create_task_manager,
+    finish_ui_setup,
+    get_auto_update_attr,
+)
 from .anki import AnkiStateUpdate, update_anki_meta_state
 from .types import PathLike
 
@@ -130,19 +136,9 @@ def custom_init_factory(post_ui_setup_callback: PostUISetupCallbackType):
         main_window.opts = opts
         main_window.col: Optional["Collection"] = None  # type: ignore
 
-        try:  # 2.1.28+
-            main_window.taskman = TaskManager(main_window)
-        except TypeError:
-            main_window.taskman = TaskManager()  # ty: ignore[missing-argument]
-
+        main_window.taskman = create_task_manager(main_window)
         main_window.media_syncer = MediaSyncer(main_window)
-
-        try:  # 2.1.45+
-            from aqt.flags import FlagManager
-
-            main_window.flags = FlagManager(main_window)
-        except (ImportError, ModuleNotFoundError):
-            pass
+        main_window.flags = create_flag_manager(main_window)
 
         aqt.mw = main_window
         main_window.app = app
@@ -152,10 +148,7 @@ def custom_init_factory(post_ui_setup_callback: PostUISetupCallbackType):
 
         post_ui_setup_callback(main_window)
 
-        try:  # 2.1.28+
-            main_window.finish_ui_setup()
-        except AttributeError:
-            pass
+        finish_ui_setup(main_window)
 
     return custom_init
 
@@ -176,9 +169,7 @@ def patch_anki(
     old_init = AnkiQt.__init__
     old_key = AnkiApp.KEY
 
-    setup_auto_update_attribute = (
-        "setupAutoUpdate" if hasattr(AnkiQt, "setupAutoUpdate") else "setup_auto_update"
-    )
+    setup_auto_update_attribute = get_auto_update_attr()
 
     old_setup_auto_update = getattr(AnkiQt, setup_auto_update_attribute)
     old_maybe_check_for_addon_updates = AnkiQt.maybe_check_for_addon_updates
@@ -191,12 +182,12 @@ def patch_anki(
     AnkiQt.__init__ = patched_ankiqt_init  # type: ignore[assignment]
     AnkiApp.KEY = "anki" + checksum(str(uuid.uuid4()))
     setattr(AnkiQt, setup_auto_update_attribute, Mock())
-    AnkiQt.maybe_check_for_addon_updates = Mock()  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
-    errors.ErrorHandler = Mock()  # type: ignore[misc]  # ty: ignore[invalid-assignment]
+    AnkiQt.maybe_check_for_addon_updates = Mock()  # type: ignore[assignment]
+    errors.ErrorHandler = Mock()  # type: ignore[misc]
 
     yield AnkiApp.KEY
 
-    AnkiQt.__init__ = old_init  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+    AnkiQt.__init__ = old_init  # type: ignore[assignment]
     AnkiApp.KEY = old_key  # type: ignore[assignment]
     setattr(AnkiQt, setup_auto_update_attribute, old_setup_auto_update)
     AnkiQt.maybe_check_for_addon_updates = (  # type: ignore[assignment]
@@ -206,4 +197,4 @@ def patch_anki(
 
 
 def set_qt_message_handler_installer(message_handler_installer: Callable):
-    aqt.qInstallMessageHandler = message_handler_installer  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+    aqt.qInstallMessageHandler = message_handler_installer  # type: ignore[assignment]

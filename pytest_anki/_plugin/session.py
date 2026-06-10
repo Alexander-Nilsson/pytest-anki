@@ -49,6 +49,7 @@ from typing import (
 )
 
 from .addons import ConfigPaths, create_addon_config
+from .aniki_compat import get_deck_ids, remove_deck
 from .anki import (
     AnkiStateUpdate,
     AnkiWebViewType,
@@ -250,15 +251,7 @@ class AnkiSession:
 
     def remove_deck(self, deck_id: int):
         """Remove deck as specified by provided deck ID"""
-        from anki.decks import DeckId
-
-        try:  # 2.1.28+
-            # Deck methods on 2.1.45 and up use a DeckId NewType derived from int.
-            # This only makes a difference at type-check time, so we stick with
-            # passing in an int for now.
-            self.collection.decks.remove([deck_id])  # type: ignore[list-item]  # ty: ignore[invalid-argument-type]
-        except AttributeError:  # legacy
-            self.collection.decks.rem(DeckId(deck_id), cardsToo=True)
+        remove_deck(self.collection, deck_id)
 
     @contextmanager
     def deck_installed(self, path: PathLike) -> Iterator[int]:
@@ -271,10 +264,7 @@ class AnkiSession:
         self.remove_deck(deck_id=deck_id)
 
     def _get_deck_ids(self) -> List[int]:
-        try:  # 2.1.28+
-            return [d.id for d in self.collection.decks.all_names_and_ids()]
-        except AttributeError:  # legacy
-            return self.collection.decks.allIds()  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
+        return get_deck_ids(self.collection)
 
     # Add-on loading ####
 

@@ -163,7 +163,7 @@ def set_anki_object_data(
         for key, value in data.items():
             collection.set_config(key, value)
     else:
-        anki_object.update(data)  # ty: ignore[unresolved-attribute]
+        anki_object.update(data)
 
     return anki_object
 

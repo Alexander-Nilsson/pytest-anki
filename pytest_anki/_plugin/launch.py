@@ -36,15 +36,12 @@ import os
 import shutil
 import tempfile
 from contextlib import contextmanager, nullcontext
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple
 from unittest import mock
 
-from packaging.version import Version
-
+from .aniki_compat import create_profile_manager
 from .anki import (
     AnkiStateUpdate,
-    get_anki_version,
     update_anki_colconf_state,
     update_anki_profile_state,
 )
@@ -71,15 +68,7 @@ QTWEBENGINE_REMOTE_DEBUGGING = "QTWEBENGINE_REMOTE_DEBUGGING"
 
 @contextmanager
 def temporary_user(anki_base_dir: str, name: str, lang: str) -> Iterator[str]:
-    from aqt.profiles import ProfileManager
-
-    if get_anki_version() >= Version("2.1.56"):
-        base_dir_path: Any = Path(anki_base_dir)
-    else:
-        base_dir_path = anki_base_dir
-
-    pm = ProfileManager(base=base_dir_path)  # ty: ignore[invalid-argument-type]
-
+    pm = create_profile_manager(anki_base_dir)
     pm.setupMeta()
     pm.setLang(lang)
     pm.create(name)
