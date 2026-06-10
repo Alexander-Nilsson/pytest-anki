@@ -297,6 +297,7 @@ def test_via_parametrize(anki_session: AnkiSession):
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `base_path` | `str` | system tempdir | Directory for Anki base folder |
+| `base_name` | `str` | `"anki_base"` | Base folder name |
 | `profile_name` | `str` | `"User 1"` | User profile name |
 | `lang` | `str` | `"en_US"` | Profile language |
 | `load_profile` | `bool` | `False` | Pre-load profile/collection |

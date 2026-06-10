@@ -143,6 +143,7 @@ class AnkiSession:
 
     @property
     def chromium_version(self) -> str:
+        """Chromium version string extracted from QtWebEngine user agent"""
         # Qt5/Qt6 stubs differ on the return type of defaultProfile()
         user_agent = QWebEngineProfile.defaultProfile().httpUserAgent()  # type: ignore[union-attr]
         match = re.match(r".*Chrome/(.+)\s+.*", user_agent)
@@ -378,6 +379,20 @@ class AnkiSession:
         task_kwargs: Optional[Dict[str, Any]] = None,
         timeout: int = 5000,
     ):
+        """Run a callable in the Qt thread pool and wait for the result.
+
+        Args:
+            task: Callable to execute in a worker thread.
+            task_args: Positional arguments for the callable.
+            task_kwargs: Keyword arguments for the callable.
+            timeout: Time in ms to wait before raising ``AnkiSessionError``.
+
+        Returns:
+            The return value of ``task``.
+
+        Raises:
+            AnkiSessionError: If the task exceeds the timeout or raises.
+        """
         thread_pool = QThreadPool.globalInstance()
         worker = SignallingWorker(
             task=task, task_args=task_args, task_kwargs=task_kwargs
@@ -399,6 +414,7 @@ class AnkiSession:
         return worker.result
 
     def set_timeout(self, task: Callable, delay: int, *args, **kwargs):
+        """Schedule a task to run on the Qt event loop after a delay in ms"""
         QTimer.singleShot(delay, lambda: task(*args, **kwargs))
 
     # Web debugging ####
@@ -450,12 +466,13 @@ class AnkiSession:
         target_web_view: Optional[Union[AnkiWebViewType, str]] = None,
         timeout: int = 5000,
     ):
-        """[summary]
+        """Run a test function with Selenium ChromeDriver attached to Anki's web views.
 
         Args:
-            test_function (Callable[[ChromeDriver], Optional[bool]]): [description]
-            target_web_view: Web view as identified by its title. Defaults to None.
-            timeout: Time to wait for task to complete until qtbot raises a TimeoutError
+            test_function: Callable that receives a ChromeDriver instance.
+            target_web_view: Web view as identified by its title or AnkiWebViewType.
+                Defaults to None (attaches to whatever web view is active).
+            timeout: Time in ms to wait for the task to complete.
         """
         if self._web_debugging_port is None:
             raise AnkiSessionError("Web debugging interface is not active")
@@ -488,6 +505,7 @@ class AnkiSession:
             return self.run_in_thread_and_wait(test_wrapper, timeout=timeout)
 
     def reset_chrome_driver(self):
+        """Quit the current ChromeDriver session and clear it"""
         if not self._chrome_driver:
             return
         self._chrome_driver.quit()

@@ -17,7 +17,7 @@ from pytest_anki._plugin.session import AnkiSession
 
 def _make_session(**kwargs):
     defaults = dict(app=Mock(), mw=Mock(), user="test", base="/tmp", qtbot=Mock())
-    return AnkiSession(**{**defaults, **kwargs})
+    return AnkiSession(**{**defaults, **kwargs})  # ty: ignore[invalid-argument-type]
 
 
 def test_chromium_version_parses_user_agent():
@@ -81,9 +81,9 @@ def test_get_anki_version_smoke():
 def test_get_anki_version_main_path():
     """Primary import path: from anki.buildinfo import version."""
     buildinfo = types.ModuleType("anki.buildinfo")
-    buildinfo.version = "25.9"
+    buildinfo.version = "25.9"  # ty: ignore[unresolved-attribute]
     main = types.ModuleType("anki")
-    main.version = "from_buildinfo"
+    main.version = "from_buildinfo"  # ty: ignore[unresolved-attribute]
 
     with patch.dict("sys.modules", {"anki.buildinfo": buildinfo, "anki": main}):
         from pytest_anki._plugin.anki import get_anki_version
@@ -95,7 +95,7 @@ def test_get_anki_version_main_path():
 def test_get_anki_version_fallback_when_buildinfo_missing():
     """Fallback path: from anki import version."""
     main = types.ModuleType("anki")
-    main.version = "23.12"
+    main.version = "23.12"  # ty: ignore[unresolved-attribute]
 
     with patch.dict("sys.modules", {"anki.buildinfo": None, "anki": main}):
         from pytest_anki._plugin.anki import get_anki_version

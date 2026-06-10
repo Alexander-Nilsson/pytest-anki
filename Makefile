@@ -15,7 +15,7 @@ test:
 
 # Run type checker
 check:
-	uv run ty check
+	uvx ty check
 
 # Run code linters
 lint:

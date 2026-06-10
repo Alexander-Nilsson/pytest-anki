@@ -127,5 +127,5 @@ jobs:
       - name: Install project
         run: uv sync --only-group dev
       - name: Run quality checks (ruff, ruff-format, ty)
-        run: uv run pre-commit run --all-files --show-diff-on-failure
+        run: uvx pre-commit run --all-files --show-diff-on-failure
 
