@@ -53,6 +53,7 @@ from .addons import (
 )
 from .aniki_compat import get_auto_update_attr
 from .anki import AnkiStateUpdate, update_anki_meta_state
+from .suppress import AnkiNoiseSuppressor
 from .testing import PostUISetupCallbackType, TestAnkiQtInit
 from .types import PathLike
 
@@ -137,6 +138,7 @@ def patch_anki(
     - allow more fine-grained control of test execution environment
     - enable concurrent testing
     - bypass blocking update dialog
+    - silence test-irrelevant diagnostic output
     """
     from anki.utils import checksum
     from aqt import AnkiApp, errors
@@ -161,6 +163,9 @@ def patch_anki(
     AnkiQt.maybe_check_for_addon_updates = Mock()  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
     errors.ErrorHandler = Mock()  # type: ignore[misc]  # ty: ignore[invalid-assignment]
 
+    noise_suppressor = AnkiNoiseSuppressor()
+    noise_suppressor.apply()
+
     yield AnkiApp.KEY
 
     AnkiQt.__init__ = old_init  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
@@ -170,6 +175,8 @@ def patch_anki(
         old_maybe_check_for_addon_updates
     )
     errors.ErrorHandler = old_errorHandler  # type: ignore[misc]
+
+    noise_suppressor.restore()
 
 
 def set_qt_message_handler_installer(message_handler_installer: Callable):
