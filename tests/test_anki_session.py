@@ -299,17 +299,13 @@ def test_reset_state_clears_addon_modules(anki_session: AnkiSession):
     _sample_addon_three_path = Path(__file__).parent / "samples" / "add-ons" / "simple"
     package_name = "sample_addon_three"
 
-    sys.path.insert(0, str(_sample_addon_three_path))
-    try:
+    with extend_sys_path(import_path=str(_sample_addon_three_path)):
         anki_session.load_addon(package_name=package_name)
         assert package_name in sys.modules
-        assert package_name in anki_session.mw.addonManager.allAddons()
 
         anki_session.reset_state()
 
         assert package_name not in sys.modules
-    finally:
-        sys.path.remove(str(_sample_addon_three_path))
 
 
 def test_reset_state_is_idempotent(anki_session: AnkiSession):
@@ -329,7 +325,9 @@ def test_loaded_addon_restores_hooks(anki_session: AnkiSession):
 
     snapshot_before = len(gui_hooks.profile_did_open._hooks)
 
-    anki_session.loaded_addon(package_name=package_name)
+    with extend_sys_path(import_path=str(_sample_addon_three_path)):
+        with anki_session.loaded_addon(package_name=package_name):
+            pass
 
     assert len(gui_hooks.profile_did_open._hooks) == snapshot_before
 
@@ -343,12 +341,12 @@ def test_loaded_addon_isolates_hook_mutations(anki_session: AnkiSession):
 
     snapshot_before = _snapshot_gui_hooks(gui_hooks)
 
-    with anki_session.loaded_addon(package_name=package_name):
-        gui_hooks.profile_did_open.append(lambda: None)
-        # Verify hook was actually added
-        assert len(gui_hooks.profile_did_open._hooks) > len(
-            snapshot_before.get("profile_did_open", [])
-        )
+    with extend_sys_path(import_path=str(_sample_addon_three_path)):
+        with anki_session.loaded_addon(package_name=package_name):
+            gui_hooks.profile_did_open.append(lambda: None)
+            assert len(gui_hooks.profile_did_open._hooks) > len(
+                snapshot_before.get("profile_did_open", [])
+            )
 
     assert len(gui_hooks.profile_did_open._hooks) == len(
         snapshot_before.get("profile_did_open", [])

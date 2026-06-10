@@ -136,6 +136,7 @@ class AnkiSession:
         self._qtbot = qtbot
         self._web_debugging_port = web_debugging_port
         self._chrome_driver: Optional["ChromeDriver"] = None
+        self._loaded_addon_packages: set[str] = set()
 
     # Key session properties ####
 
@@ -291,6 +292,7 @@ class AnkiSession:
                 f"Ensure the add-on is installed in Anki's add-ons directory "
                 f"(addons21/{package_name})."
             ) from exc
+        self._loaded_addon_packages.add(package_name)
         return addon_package
 
     @contextmanager
@@ -315,12 +317,12 @@ class AnkiSession:
             self._unload_addon(package_name)
             _restore_hooks(snapshot)
 
-    @staticmethod
-    def _unload_addon(package_name: str):
+    def _unload_addon(self, package_name: str):
         """Remove an add-on package and its submodules from sys.modules."""
         for mod_name in list(sys.modules.keys()):
             if mod_name == package_name or mod_name.startswith(package_name + "."):
                 del sys.modules[mod_name]
+        self._loaded_addon_packages.discard(package_name)
 
     # Add-on config handling ####
 
@@ -404,6 +406,9 @@ class AnkiSession:
             mod_file = getattr(mod, "__file__", None)
             if mod_file is not None and self._base in mod_file:
                 del sys.modules[mod_name]
+
+        for package_name in list(self._loaded_addon_packages):
+            self._unload_addon(package_name)
 
         if aqt.mw and aqt.mw.app:
             aqt.mw.app.processEvents()
