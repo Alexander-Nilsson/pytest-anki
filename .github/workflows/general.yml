@@ -22,22 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Qt5 entries
-          - anki: anki-2154
-            python: 3.9.15
-            qt: qt5-2154
-            qt-api: pyqt5
-            chrome: 94.0.4606.126
-          - anki: anki-2165
-            python: 3.9.15
-            qt: qt5-2165
-            qt-api: pyqt5
-            chrome: 108.0.5359.220
-          - anki: anki-2312
-            python: 3.9.15
-            qt: qt5-2312
-            qt-api: pyqt5
-            chrome: 112.0.5615.213
+          # Qt5 entries (single representative — https://github.com/ankitects/anki/releases/tag/24.11)
           - anki: anki-2411
             python: 3.9.18
             qt: qt5-2411
@@ -114,78 +99,33 @@ jobs:
         env:
           PYTEST_ADDOPTS: -o qt_api=${{ matrix['qt-api'] }}
         run: |
-          make test
+          COV=""
+          if [[ "${{ matrix.anki }}" == "anki-2509" && "${{ matrix.python }}" == "3.12.9" ]]; then
+            COV="--cov=pytest_anki --cov-report=xml --cov-report=term"
+          fi
+          python -m pytest $COV -n4 tests/
 
-  pre-commit:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"
-      - uses: astral-sh/setup-uv@v5
-        with:
-          version: "0.6.13"
-          python-version: "3.9"
-          enable-cache: false
-      - name: Install project
-        run: uv sync --only-group dev
-      - name: Run pre-commit hooks
-        run: uv run pre-commit run --all-files --show-diff-on-failure
-
-  lint:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"
-      - uses: astral-sh/setup-uv@v5
-        with:
-          version: "0.6.13"
-          python-version: "3.9"
-          enable-cache: false
-      - name: Install project
-        run: uv sync --only-group dev
-      - name: Run linter
-        run: make lint
-
-  typecheck:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.9"
-      - uses: astral-sh/setup-uv@v5
-        with:
-          version: "0.6.13"
-          python-version: "3.9"
-          enable-cache: false
-      - name: Install project
-        run: uv sync --only-group dev
-      - name: Run type checker
-        run: make check
-
-  coverage:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up test environment
-        uses: ./.github/actions/setup
-        with:
-          python: 3.12.9
-          chrome: 122.0.6261.171
-          anki: anki-2509
-          qt: qt6-2509
-      - name: Run tests with coverage
-        shell: bash
-        env:
-          PYTEST_ADDOPTS: -o qt_api=pyqt6
-        run: |
-          python -m pytest --cov=pytest_anki --cov-report=xml --cov-report=term -n4 tests/
       - name: Upload coverage report
+        if: ${{ matrix.anki == 'anki-2509' && matrix.python == '3.12.9' }}
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage.xml
+
+  quality:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.6.13"
+          python-version: "3.9"
+          enable-cache: false
+      - name: Install project
+        run: uv sync --only-group dev
+      - name: Run quality checks (ruff, ruff-format, ty)
+        run: uv run pre-commit run --all-files --show-diff-on-failure
+

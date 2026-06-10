@@ -129,9 +129,7 @@ def _check_result(result):
         return
     elif status == "skipped":
         pytest.skip(
-            result.get(
-                "reason", "Test skipped internally"
-            )  # ty: ignore[too-many-positional-arguments]
+            result.get("reason", "Test skipped internally")  # ty: ignore[too-many-positional-arguments]
         )
     elif status == "failed":
         message = result.get("message", "Test failed")
