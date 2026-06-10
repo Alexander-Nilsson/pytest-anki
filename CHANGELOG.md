@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0-dev] — 2026-06-10
+
+### Added
+- `pytest_anki/_plugin/aniki_compat.py` — central version-compatibility seam for 8 version-gated functions (issue 001)
+- `pytest_anki/_plugin/teardown.py` — `TeardownManager.shutdown()` extracts 7 inline teardown steps (issue 002)
+- `pytest_anki/_plugin/qtbot.py` — `StandaloneQtBot` class replaces inline string constant in subprocess runner (issue 003)
+- `pytest_anki/_plugin/hooks.py` — `HookRegistry` class replaces module-level `_snapshot_hooks`/`_restore_hooks` (issue 004)
+- `pytest_anki/_plugin/testing.py` — `TestAnkiQtInit` class replaces closure-based `custom_init_factory` (issue 005)
+### Changed
+- `_plugin/` modules: 8 → 13 (5 new private modules)
+- Subprocess runner imports `StandaloneQtBot` via `sys.path` instead of embedding raw code string
+
 ## [2.1.0] — 2026-06-10
 
 ### Added

@@ -7,7 +7,7 @@ to know about ``dir()``, ``_hooks`` attributes, or ``deepcopy``.
 """
 
 import copy
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 _HookSnapshot = Dict[str, Any]
 

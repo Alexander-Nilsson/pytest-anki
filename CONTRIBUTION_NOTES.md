@@ -66,6 +66,7 @@ Tests use pytest (self-testing plugin). No tox, no nox. CI runs on push/PR via
 - [x] Version constraint files in `constraints/`.
 - [x] `CHANGELOG.md` created.
 
+
 ## Open Decisions / Unresolved Questions
 
 1. **Qt detection strategy**: Auto-detection with optional `QT_API` env-var override (implemented).
@@ -78,5 +79,8 @@ Tests use pytest (self-testing plugin). No tox, no nox. CI runs on push/PR via
 4. **Pre-existing type errors** — All 4 pre-existing type errors (3 mypy in compat.py, 1 mypy in
    launch.py, 2 pyright in test_plugin_config.py) were fixed in commit `17826e2`. MyPy and PyRight
    now pass cleanly (0 issues across 21 source files).
-5. **Test suite** cannot run locally — Qt6 WebEngine requires `libxml2.so.2` ABI unavailable on
-   this system. Full validation requires CI (Ubuntu 24.04 with `tlambert03/setup-qt-libs@v1`).
+ 5. **Test suite** cannot run locally — Qt6 WebEngine requires `libxml2.so.2` ABI unavailable on
+    this system. Full validation requires CI (Ubuntu 24.04 with `tlambert03/setup-qt-libs@v1`).
+ 6. **5 new private modules** created under `_plugin/` (001–005 architecture improvements):
+    `aniki_compat.py`, `teardown.py`, `qtbot.py`, `hooks.py`, `testing.py`.
+    Total `_plugin/` modules: 8 → 13.

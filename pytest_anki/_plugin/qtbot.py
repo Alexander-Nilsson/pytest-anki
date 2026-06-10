@@ -29,7 +29,6 @@ if _qt_prefix is None:
 
 if _qt_prefix == "PyQt6":
     from PyQt6.QtCore import QCoreApplication, QEventLoop, Qt as _Qt, QTimer
-    from PyQt6.QtWidgets import QApplication as _QApplication
 
     _aa_share = getattr(_Qt, "AA_ShareOpenGLContexts", None)
     if _aa_share is not None:
@@ -42,7 +41,6 @@ if _qt_prefix == "PyQt6":
     _ALL_EVENTS = QEventLoop.ProcessEventsFlag.AllEvents
 else:
     from PyQt5.QtCore import QCoreApplication, QEventLoop, QTimer
-    from PyQt5.QtWidgets import QApplication as _QApplication
 
     try:
         from PyQt5.QtWebEngineWidgets import QWebEngineView  # noqa: F401

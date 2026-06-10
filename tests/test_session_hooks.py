@@ -48,36 +48,36 @@ def _make_fake_hook_modules():
 def test_snapshot_captures_gui_hooks():
     fake = _make_fake_hook_modules()
     with patch.dict("sys.modules", fake):
-        snapshot = _snapshot_hooks()
+        snap = snapshot()
 
-    assert "gui_hooks.profile_did_open" in snapshot
-    assert len(snapshot["gui_hooks.profile_did_open"]) == 1
-    assert "gui_hooks.reviewer_did_show_question" in snapshot
-    assert len(snapshot["gui_hooks.reviewer_did_show_question"]) == 2
-    assert "gui_hooks.card_will_show" in snapshot
-    assert len(snapshot["gui_hooks.card_will_show"]) == 0
-    assert "anki_hooks._hooks" in snapshot
-    assert "test_hook" in snapshot["anki_hooks._hooks"]
+    assert "gui_hooks.profile_did_open" in snap
+    assert len(snap["gui_hooks.profile_did_open"]) == 1
+    assert "gui_hooks.reviewer_did_show_question" in snap
+    assert len(snap["gui_hooks.reviewer_did_show_question"]) == 2
+    assert "gui_hooks.card_will_show" in snap
+    assert len(snap["gui_hooks.card_will_show"]) == 0
+    assert "anki_hooks._hooks" in snap
+    assert "test_hook" in snap["anki_hooks._hooks"]
 
 
 def test_snapshot_ignores_non_hook_attributes():
     fake = _make_fake_hook_modules()
     with patch.dict("sys.modules", fake):
-        snapshot = _snapshot_hooks()
-    keys = [k for k in snapshot if "some_constant" in k]
+        snap = snapshot()
+    keys = [k for k in snap if "some_constant" in k]
     assert len(keys) == 0
 
 
 def test_restore_reverts_gui_hooks():
     fake = _make_fake_hook_modules()
     with patch.dict("sys.modules", fake):
-        snapshot = _snapshot_hooks()
+        snap = snapshot()
 
         gh = fake["aqt.gui_hooks"]
         gh.profile_did_open._hooks.append(lambda: 99)
         gh.reviewer_did_show_question._hooks.clear()
 
-        _restore_hooks(snapshot)
+        restore(snap)
 
         assert len(gh.profile_did_open._hooks) == 1
         assert len(gh.reviewer_did_show_question._hooks) == 2
@@ -86,13 +86,13 @@ def test_restore_reverts_gui_hooks():
 def test_restore_reverts_anki_hooks():
     fake = _make_fake_hook_modules()
     with patch.dict("sys.modules", fake):
-        snapshot = _snapshot_hooks()
+        snap = snapshot()
 
         anki_hooks = fake["anki.hooks"]
         anki_hooks._hooks["new_hook"] = [lambda: False]
         del anki_hooks._hooks["test_hook"]
 
-        _restore_hooks(snapshot)
+        restore(snap)
 
         assert "new_hook" not in anki_hooks._hooks
         assert "test_hook" in anki_hooks._hooks
@@ -102,17 +102,17 @@ def test_restore_handles_empty_snapshot():
     """Restoring an empty snapshot should not raise."""
     fake = _make_fake_hook_modules()
     with patch.dict("sys.modules", fake):
-        _restore_hooks({})
+        restore({})
 
 
 def test_double_restore_is_idempotent():
     fake = _make_fake_hook_modules()
     with patch.dict("sys.modules", fake):
-        snapshot = _snapshot_hooks()
-        _restore_hooks(snapshot)
-        snapshot2 = _snapshot_hooks()
+        snap = snapshot()
+        restore(snap)
+        snap2 = snapshot()
 
-    assert snapshot == snapshot2
+    assert snap == snap2
 
 
 def test_hook_registry_class_delegates():

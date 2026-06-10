@@ -6,7 +6,7 @@ and overridden individually. The ``patch_anki`` context manager
 remains the seam; ``TestAnkiQtInit`` is the adapter behind it.
 """
 
-from typing import TYPE_CHECKING, Any, Callable, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, List
 
 from .aniki_compat import create_flag_manager, create_task_manager, finish_ui_setup
 from .compat import QMainWindow
@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from argparse import Namespace
 
     from anki._backend import RustBackend
-    from anki.collection import Collection
     from aqt import AnkiApp
     from aqt.main import AnkiQt
     from aqt.profiles import ProfileManager as ProfileManagerType
