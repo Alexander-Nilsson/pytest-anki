@@ -29,8 +29,8 @@ def _suppress_webview_prints(webview_cls: type) -> dict[str, Any]:
     Returns a dict of original methods keyed by attribute name.
     """
     originals: dict[str, Any] = {}
-    originals["_onBridgeCmd"] = webview_cls._onBridgeCmd  # ty: ignore[unresolved-attribute]
-    originals["_evalWithCallback"] = webview_cls._evalWithCallback  # ty: ignore[unresolved-attribute]
+    originals["_onBridgeCmd"] = getattr(webview_cls, "_onBridgeCmd")
+    originals["_evalWithCallback"] = getattr(webview_cls, "_evalWithCallback")
 
     _real_onBridgeCmd = originals["_onBridgeCmd"]
     _real_evalWithCallback = originals["_evalWithCallback"]
@@ -56,16 +56,16 @@ def _suppress_webview_prints(webview_cls: type) -> dict[str, Any]:
         if page is not None:
             page.runJavaScript(js, _handler)
 
-    webview_cls._onBridgeCmd = _silent_onBridgeCmd  # ty: ignore[unresolved-attribute]
-    webview_cls._evalWithCallback = _silent_evalWithCallback  # ty: ignore[unresolved-attribute]
+    setattr(webview_cls, "_onBridgeCmd", _silent_onBridgeCmd)
+    setattr(webview_cls, "_evalWithCallback", _silent_evalWithCallback)
 
     return originals
 
 
 def _restore_webview_prints(webview_cls: type, originals: dict[str, Any]) -> None:
     """Restore original ``AnkiWebView`` methods."""
-    webview_cls._onBridgeCmd = originals["_onBridgeCmd"]  # ty: ignore[unresolved-attribute]
-    webview_cls._evalWithCallback = originals["_evalWithCallback"]  # ty: ignore[unresolved-attribute]
+    setattr(webview_cls, "_onBridgeCmd", originals["_onBridgeCmd"])
+    setattr(webview_cls, "_evalWithCallback", originals["_evalWithCallback"])
 
 
 def _suppress_toolbar_sync_status(toolbar_cls: type) -> dict[str, Any]:
@@ -79,18 +79,18 @@ def _suppress_toolbar_sync_status(toolbar_cls: type) -> dict[str, Any]:
     Returns a dict containing the original method keyed by attribute name.
     """
     originals: dict[str, Any] = {}
-    originals["set_sync_status"] = toolbar_cls.set_sync_status  # ty: ignore[unresolved-attribute]
+    originals["set_sync_status"] = getattr(toolbar_cls, "set_sync_status")
 
     def _noop_set_sync_status(self: Any, status: Any) -> None:
         pass
 
-    toolbar_cls.set_sync_status = _noop_set_sync_status  # ty: ignore[unresolved-attribute]
+    setattr(toolbar_cls, "set_sync_status", _noop_set_sync_status)
     return originals
 
 
 def _restore_toolbar_sync_status(toolbar_cls: type, originals: dict[str, Any]) -> None:
     """Restore original ``Toolbar.set_sync_status``."""
-    toolbar_cls.set_sync_status = originals["set_sync_status"]  # ty: ignore[unresolved-attribute]
+    setattr(toolbar_cls, "set_sync_status", originals["set_sync_status"])
 
 
 class AnkiNoiseSuppressor:
