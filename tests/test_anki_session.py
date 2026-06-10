@@ -131,12 +131,12 @@ def _get_deck_ids(collection: "Collection") -> List[int]:
     except AttributeError:
         return [
             int(deck_id)
-            for deck_id in collection.decks.allIds()  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
+            for deck_id in collection.decks.allIds()  # type: ignore[attr-defined]
         ]
 
 
 def _assert_deck_exists(collection: "Collection", deck_id: int):
-    deck = collection.decks.get(did=deck_id)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
+    deck = collection.decks.get(did=deck_id)  # type: ignore[arg-type]
     assert deck is not None and deck["id"] == deck_id
 
 

@@ -48,7 +48,7 @@ class TestAnkiQtInit:
         main_window.backend = backend
         main_window.state = "startup"
         main_window.opts = opts
-        main_window.col = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+        main_window.col = None  # type: ignore[assignment]
 
         main_window.taskman = create_task_manager(main_window)
         main_window.media_syncer = self._create_media_syncer(main_window)
