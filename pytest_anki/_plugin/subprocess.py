@@ -70,12 +70,12 @@ def run_in_subprocess(
         + env_assignments
         + "\n"
         + "sys.path.insert(0, {})\n".format(json.dumps(_project_root))
-        + "from pytest_anki._plugin.qtbot import _qtbot, StandaloneQtBot\n"
-        + "\n"
-        + "def _run_test():\n"
-        + textwrap.indent(body_source, "    ")
-        + "\n"
         + "try:\n"
+        + "    from pytest_anki._plugin.qtbot import _qtbot, StandaloneQtBot\n"
+        + "\n"
+        + "    def _run_test():\n"
+        + textwrap.indent(body_source, "        ")
+        + "\n"
         + "    _run_test()\n"
         + "except SystemExit:\n"
         + "    raise\n"
